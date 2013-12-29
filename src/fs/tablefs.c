@@ -1215,11 +1215,11 @@ int TableFS_Chown(TableFS *tablefs,const char *path, uid_t uid, gid_t gid) {
   InodeMutex_Unlock(tablefs->fstree_lock,&key);
   return ret;
 }
-/*
-bool TableFS_GetStat(TableFS *tablefs,std::string stat, std::string* value) {
-  return state_->GetMetaDB()->GetStat(stat, value);
-}
 
+bool TableFS_GetStat(TableFS *tablefs,char *stat, char** value) {
+  //return state_->GetMetaDB()->GetStat(stat, value);
+}
+/*
 void TableFS_Compact(TableFS *tablefs) {
   LevelDBAdaptor_Compact(FileSystemState_GetMetaDB(tablefs->state_));
 }

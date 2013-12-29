@@ -7,7 +7,7 @@
 #include <string.h>
 //#include <unordered_map>
 #include <errno.h>
-#include "fs/tfs_inode.h"
+#include "tfs_inode.h"
 //#include "leveldb/cache.h"
 //#include "leveldb/db.h"
 //#include "leveldb/iterator.h"

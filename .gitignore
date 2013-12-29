@@ -1,0 +1,4 @@
+## Files To be Ignored
+*.out
+*.o
+*~

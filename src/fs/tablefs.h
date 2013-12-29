@@ -3,10 +3,10 @@
 
 #define FUSE_USE_VERSION 26
 #include <fuse.h>
-#include "fs/tfs_state.h"
-#include "fs/inodemutex.h"
-#include "fs/dcache.h"
-#include "fs/icache.h"
+#include "tfs_state.h"
+#include "inodemutex.h"
+#include "dcache.h"
+#include "icache.h"
 
 //namespace tablefs {
 
