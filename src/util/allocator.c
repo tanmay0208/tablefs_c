@@ -34,7 +34,7 @@ void Allocator_constructor(Allocator *allocator,size_t lock_size) {
         perror("memory locking failed");
         exit(1);
       }
-      //blocks.push_back((char *) page_start);
+      vector_add(allocator->blocks,page_start);   //original arg 2 was (char *)
     }
     allocator->current_block = 0;
     allocator->remaining_bytes = MemoryPageSize;
@@ -48,11 +48,13 @@ void Allocator_constructor(Allocator *allocator,size_t lock_size) {
 }
 
 void Allocator_Destructor(Allocator *allocator){
+  size_t i;
   if (allocator->flag_using_lock_memory) {
-  //  for (size_t i = 0; i < blocks.size(); i++) {
-  //    free(blocks[i]);
-  // }
-  } else {
+    for (i = 0; i < vector_count(allocator->blocks); i++) {
+      vector_delete(allocator->blocks,i);
+    }
+  } 
+  else {
   //  for (size_t i = 0; i < blocks.size(); i++) {
     //  delete [] blocks[i];
     }
@@ -66,25 +68,25 @@ void* Allocator_Allocate(Allocator *allocator,size_t bytes) {
   }
   if (allocator->flag_using_lock_memory) {
     if (allocator->remaining_bytes < bytes) {
-     /* if (allocator->current_block + 1 < blocks.size()) {
-        current_block ++;
-        remaining_bytes = MemoryPageSize;
+      if (allocator->current_block + 1 < vector_count(allocator->blocks)) {
+        allocator->current_block ++;
+        allocator->remaining_bytes = MemoryPageSize;
       }
      else {
-        char* page_start = new char[bytes];
-        blocks.push_back(page_start);
-        remaining_bytes = 0;
+        char* page_start[bytes];
+        vector_add(allocator->blocks,page_start);
+        allocator->remaining_bytes = 0;
         return (void *) page_start;
-      }*/
+      }
     }
-   /* char* alloc_addr = blocks[current_block]+
-                       (MemoryPageSize - remaining_bytes);*/
+    char* alloc_addr = vector_get(allocator->blocks,(int)allocator->current_block)+    // some jhol maybe there
+                       (MemoryPageSize - allocator->remaining_bytes);
     allocator->remaining_bytes -= bytes;
-   // return (void *) alloc_addr;
+    return (void *) alloc_addr;
   } else {
     char* page_start[bytes];
-    //blocks.push_back(page_start);
-    //return (void *) page_start;
+    vector_add(allocator->blocks,page_start);
+    return (void *) page_start;
   }
 }
 

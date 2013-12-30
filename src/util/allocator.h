@@ -1,10 +1,10 @@
 #ifndef ALLOCATOR_H_
 #define ALLOCATOR_H_
 #include <string.h>
-//#include <vector>
+#include "fs/vector.h"
 #include <stdint.h>
 #include <assert.h>
-#include<stdbool.h>
+#include <stdbool.h>
 
 //namespace tablefs {
 
@@ -12,6 +12,7 @@
 
 struct Allocator{
 
+  vector *blocks;
   size_t remaining_bytes;
   size_t current_block;
   bool flag_using_lock_memory;
