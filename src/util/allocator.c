@@ -55,9 +55,10 @@ void Allocator_Destructor(Allocator *allocator){
     }
   } 
   else {
-  //  for (size_t i = 0; i < blocks.size(); i++) {
-    //  delete [] blocks[i];
-    }
+    /*for (i = 0; i < vector_size(allocator->blocks); i++) {
+      vector_delete(allocator->blocks,i);                          //DELETE block[i] pass kela
+    }*/
+  }
 }
 
 
@@ -72,23 +73,25 @@ void* Allocator_Allocate(Allocator *allocator,size_t bytes) {
         allocator->current_block ++;
         allocator->remaining_bytes = MemoryPageSize;
       }
-     else {
-        char* page_start[bytes];
+      else {
+        char *page_start;
+        page_start=(char*)malloc(bytes*sizeof(char));          //implemented malloc just see afterwards
         vector_add(allocator->blocks,page_start);
         allocator->remaining_bytes = 0;
         return (void *) page_start;
       }
     }
-    char* alloc_addr = vector_get(allocator->blocks,(int)allocator->current_block)+    // some jhol maybe there
+    char* alloc_addr = vector_get(allocator->blocks,allocator->current_block)+    // some jhol maybe there
                        (MemoryPageSize - allocator->remaining_bytes);
     allocator->remaining_bytes -= bytes;
     return (void *) alloc_addr;
-  } else {
-    char* page_start[bytes];
+  } 
+  else {
+    char *page_start;
+    page_start=(char*)malloc(bytes*sizeof(char));                //tan::implemented malloc just see afterwards
     vector_add(allocator->blocks,page_start);
     return (void *) page_start;
   }
 }
-
 //} // namespace tablefs
 //#endif
