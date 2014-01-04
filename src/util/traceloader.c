@@ -26,17 +26,17 @@ void TraceLoader_LoadTrace(TraceLoader *traceloader,const char* filename) {
     printf("the format of trace file is wrong: %s\n", filename);
     return;
   }
-  /*traceloader->paths = (char**) traceloader->allocator_->Allocate(traceloader->num_paths * sizeof(char *));
-  if (paths == NULL) {
+  traceloader->paths = (char**) Allocator_Allocate(traceloader->allocator_,traceloader->num_paths * sizeof(char *));
+  if (traceloader->paths == NULL) {
     printf("Cannot allocate memory: %d\n", __LINE__);
     exit(1);
-  }                                               //Allocator is std::allocate , handle it first problem in allocate function
-  
-  traceloader->filetypes = (char *) allocator_->Allocate(traceloader->num_paths * sizeof(char));
+  }                                              
+    
+  traceloader->filetypes = (char *) Allocator_Allocate(traceloader->allocator_,traceloader->num_paths * sizeof(char));
   if (traceloader->filetypes == NULL) {
     printf("Cannot allocate memory: %d\n", __LINE__);
     exit(1);
-  }*/
+  }
   FileRecord rec;
   for (i = 0; i < traceloader->num_paths; ++i) {
     int len = 0;
@@ -59,9 +59,8 @@ void TraceLoader_LoadTrace(TraceLoader *traceloader,const char* filename) {
 }
 
 char* TraceLoader_AddEntry(TraceLoader *traceloader,const char *filename, int size) {
-  char* new_path ;          //added for compile
-  //char* new_path = (char *) traceloader->allocator_->Allocate(size);        
-  //Allocator is std::allocate , handle it first problem in allocate function
+  
+  char* new_path = (char *) Allocator_Allocate(traceloader->allocator_,size);        
   strncpy(new_path, filename, size);
   return new_path;
 }

@@ -8,7 +8,7 @@
 #ifndef TRACELOADER_H_
 #define TRACELOADER_H_
 #include <string.h>
-//#include <vector>
+#include "fs/vector.h"
 #include "util/allocator.h"
 
 //namespace tablefs {

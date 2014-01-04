@@ -1,4 +1,3 @@
-#ifdef UNSUPPORTED
 // Copyright (c) 2011 The LevelDB Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
@@ -17,95 +16,72 @@
 #define STORAGE_LEVELDB_INCLUDE_SLICE_H_
 
 #include <assert.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
-#include <string>
+//#include <string>
 
-namespace leveldb {
+//namespace leveldb {
 
-class Slice {
- public:
-  // Create an empty slice.
-  Slice() : data_(""), size_(0) { }
+struct Slice {
+//public:
+  const char* data_;
+  size_t size_;
+ };
+ typedef struct Slice Slice;  // Create an empty slice.
+  
+void Slice_init(Slice *slice);
 
   // Create a slice that refers to d[0,n-1].
-  Slice(const char* d, size_t n) : data_(d), size_(n) { }
+void Slice_init_size(Slice *slice,const char* d, size_t n) ;
 
   // Create a slice that refers to the contents of "s"
-  Slice(const std::string& s) : data_(s.data()), size_(s.size()) { }
+void Slice_init_str(Slice *slice,const char *s);
 
   // Create a slice that refers to s[0,strlen(s)-1]
-  Slice(const char* s) : data_(s), size_(strlen(s)) { }
+  //Slice(const char* s) : data_(s), size_(strlen(s)) { }
 
   // Return a pointer to the beginning of the referenced data
-  const char* data() const { return data_; }
+const char* Slice_data(const Slice *slice);
 
   // Return the length (in bytes) of the referenced data
-  size_t size() const { return size_; }
+size_t Slice_size(const Slice *slice) ;
 
   // Return true iff the length of the referenced data is zero
-  bool empty() const { return size_ == 0; }
+bool Slice_empty(Slice *slice) ;
 
   // Return the ith byte in the referenced data.
   // REQUIRES: n < size()
-  char operator[](size_t n) const {
-    assert(n < size());
-    return data_[n];
-  }
+char Slice_operator_bracket(Slice *slice,size_t n) ;
 
   // Change this slice to refer to an empty array
-  void clear() { data_ = ""; size_ = 0; }
-
+void Slice_clear(Slice *slice) ;
   // Drop the first "n" bytes from this slice.
-  void remove_prefix(size_t n) {
-    assert(n <= size());
-    data_ += n;
-    size_ -= n;
-  }
+void Slice_remove_prefix(Slice *slice,size_t n);
 
   // Return a string that contains the copy of the referenced data.
-  std::string ToString() const { return std::string(data_, size_); }
-
+char *Slice_ToString(Slice *slice);
   // Three-way comparison.  Returns value:
   //   <  0 iff "*this" <  "b",
   //   == 0 iff "*this" == "b",
   //   >  0 iff "*this" >  "b"
-  int compare(const Slice& b) const;
+  //int compare(const Slice& b) const;
 
   // Return true iff "x" is a prefix of "*this"
-  bool starts_with(const Slice& x) const {
-    return ((size_ >= x.size_) &&
-            (memcmp(data_, x.data_, x.size_) == 0));
-  }
+  bool Slice_starts_with(Slice *slice,const Slice *x) ;
 
- private:
-  const char* data_;
-  size_t size_;
+ //private:
+  
 
   // Intentionally copyable
-};
+//};
 
-inline bool operator==(const Slice& x, const Slice& y) {
-  return ((x.size() == y.size()) &&
-          (memcmp(x.data(), y.data(), x.size()) == 0));
-}
+bool Slice_operator_equals(const Slice *x, const Slice *y) ;
 
-inline bool operator!=(const Slice& x, const Slice& y) {
-  return !(x == y);
-}
+inline bool Slice_operator_not_equals(const Slice *x, const Slice *y) ;
 
-inline int Slice::compare(const Slice& b) const {
-  const int min_len = (size_ < b.size_) ? size_ : b.size_;
-  int r = memcmp(data_, b.data_, min_len);
-  if (r == 0) {
-    if (size_ < b.size_) r = -1;
-    else if (size_ > b.size_) r = +1;
-  }
-  return r;
-}
-
-}  // namespace leveldb
+inline int Slice_compare(Slice *slice,const Slice *	b) ;
+//}  // namespace leveldb
 
 
 #endif  // STORAGE_LEVELDB_INCLUDE_SLICE_H_
-#endif

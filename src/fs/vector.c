@@ -21,7 +21,6 @@ int vector_size(vector *v)
 	return v->size;
 }
 
-
 void vector_add(vector *v, void *e)
 {
 	if (v->size == 0) {

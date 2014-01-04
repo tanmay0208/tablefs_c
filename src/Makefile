@@ -35,6 +35,7 @@ FUSEFLAGS=`pkg-config fuse --cflags` $(FLAG)
 FSLIBOJECTS=`pkg-config fuse --libs`
 
 LIBOBJECTS = \
+./include/leveldb/slice.o \
 ./fs/dcache.o \
 ./fs/tablefs.o \
 ./fs/tfs_state.o \
