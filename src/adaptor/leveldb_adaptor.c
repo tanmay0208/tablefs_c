@@ -8,10 +8,12 @@
 
 
 #include "leveldb_adaptor.h"
+#include "leveldb/options.h"
+ #include "leveldb/c.h"
 //#include "leveldb/db.h"
 //#include "leveldb/cache.h"
 //#include "leveldb/write_batch.h"
-//#include "leveldb/status.h"
+#include "leveldb/status.h"
 //#include "leveldb/filter_policy.h"
 #include <time.h>
 //#ifdef SUPPORTED
@@ -63,7 +65,7 @@ bool LevelDBAdaptor_GetStat(LevelDBAdaptor *leveldbadaptor,char *stat, char** va
 }
 
 int LevelDBAdaptor_Init(LevelDBAdaptor *leveldbadaptor) {
-  assert(db_ == NULL);
+  assert(leveldbadaptor->db_ == NULL);
   char *db_name;
   int F_cache_size = Properties_getPropertyInt(&(leveldbadaptor->p_),"leveldb.cache.size", 16<<20);
   leveldbadaptor->cache_ = (F_cache_size >= 0) ? leveldb_cache_create_lru(F_cache_size) : NULL;
@@ -78,9 +80,9 @@ int LevelDBAdaptor_Init(LevelDBAdaptor *leveldbadaptor) {
   leveldb_options_set_filter_policy(options, leveldb_filterpolicy_create_bloom(12));
 
   if (leveldbadaptor->logs != NULL) {
-    /*Logging_LogMsg(leveldbadaptor->logs,"limit level: %d\n", options.limit_sst_file_size);
-    Logging_LogMsg(leveldbadaptor->logs,"limit level0: %d\n", options.limit_level_zero);
-    Logging_LogMsg(leveldbadaptor->logs,"factor level files: %lf\n", options.factor_level_files);*/
+    /*Logging_LogMsg(leveldbadaptor->logs,"limit level: %d\n", options->rep.limit_sst_file_size);
+    Logging_LogMsg(leveldbadaptor->logs,"limit level0: %d\n", options->rep.limit_level_zero);
+    Logging_LogMsg(leveldbadaptor->logs,"factor level files: %lf\n", options->rep->factor_level_files);*/
   }
   leveldbadaptor->writeahead = Properties_getPropertyInt(&(leveldbadaptor->p_),"leveldb.writeahead", true);
   leveldbadaptor->logon = Properties_getPropertyInt(&(leveldbadaptor->p_),"leveldb.logon", false);
@@ -88,13 +90,14 @@ int LevelDBAdaptor_Init(LevelDBAdaptor *leveldbadaptor) {
   leveldbadaptor->sync_size_limit = Properties_getPropertyInt(&(leveldbadaptor->p_),"leveldb.sync.size.limit", -1);
   leveldbadaptor->last_sync_time = time(NULL);
   leveldbadaptor->async_data_size = 0;
-  /*Status s = leveldb_open(options, db_name, &db_);		//handle status first
-  if (!s.ok()) {
+  //Status *s = leveldb_open(options, db_name, &leveldbadaptor->db_);		//handle status first
+  Status *s ;             //added for compile
+  if (!Status_ok(s)) {
     return -1;
   } else {
     return 0;
-  }*/
-    return 1;			//added for comipling
+  }
+ 
 }
 
 void LevelDBAdaptor_Cleanup(LevelDBAdaptor *leveldbadaptor) {
@@ -103,70 +106,80 @@ void LevelDBAdaptor_Cleanup(LevelDBAdaptor *leveldbadaptor) {
   leveldbadaptor->db_ = NULL;
 }
 
-/*int LevelDBAdaptor_Get(LevelDBAdaptor *leveldbadaptor,const leveldb::Slice &key,
-                        std::string &result) {
-  ReadOptions options;
-  Status s = db_->Get(options, key, &result);
+int LevelDBAdaptor_Get(LevelDBAdaptor *leveldbadaptor,Slice* key,
+                        char *result) {
+  leveldb_readoptions_t *options;
+  char *db_name;
+  //ReadOptions options;
+  //Status *s = leveldb_get(leveldbadaptor->db_,options, Slice_data(key),Slice_size(key), &result);
+  Status *s;    //added for compile
   if (leveldbadaptor->logon) {
     if (leveldbadaptor->logs != NULL) {
-      const int *data = (const int *) key.ToString().data();
-      Logging_LogMsg(leveldbadaptor->logs,"read %s %d %x\n", db_name.c_str(), data[0], data[1]);
+      //const int *data = (const int *) key.ToString().data();
+      const int *data;          //added for compile
+      Logging_LogMsg(leveldbadaptor->logs,"read %s %d %x\n", db_name, data[0], data[1]);
     }
   }
-  if (!s.ok()) {
-    result = s.ToString();
+  if (!Status_ok(s)) {
+    result = Status_ToString(s);
     return -1;
   } else {
-    return (s.IsNotFound()) ? 0 : 1;
+    return (Status_IsNotFound(s)) ? 0 : 1;
   }
 }
-*/
+
 LevelDBIterator* LevelDBAdaptor_GetNewIterator(LevelDBAdaptor *leveldbadaptor) {
     //ReadOptions read_options;
+  leveldb_readoptions_t *read_options;
     if (leveldbadaptor->logon) {
       if (leveldbadaptor->logs != NULL)
         Logging_LogMsg(leveldbadaptor->logs,"iterator\n");
   }
+  leveldb_iterator_t *iter = leveldb_create_iterator(leveldbadaptor->db_,read_options);
+  LevelDBIterator *leveldbiterator;
+  LevelDBIterator_constructor(leveldbiterator,iter);
   //Iterator* iter = db_->NewIterator(read_options);
-  //return new LevelDBIterator(iter);
+  return leveldbiterator;
 }
 
 int LevelDBAdaptor_Sync(LevelDBAdaptor *leveldbadaptor) {
-  /*WriteOptions write_options;
-  write_options.sync = true;
-   leveldb::Status status = db_->Put(write_options, "sync", "");
-  if (status.ok()) {
+  leveldb_writeoptions_t *write_options;
+  leveldb_writeoptions_set_sync(write_options,true);
+  //write_options.sync = true;
+   //Status status = db_->Put(write_options, "sync", "");
+ /* if (status.ok()) {
     return 0;
   } else {
     return -1;
   }*/
 }
-/*
-int LevelDBAdaptor::Put(const leveldb::Slice &key,
-                        const leveldb::Slice &value) {
-  if (logon) {
-    if (logs != NULL) {
-      const int *data = (const int *) key.ToString().data();
+
+int LevelDBAdaptor_Put(LevelDBAdaptor *leveldbadaptor,Slice *key,
+                        Slice *value) {
+  if (leveldbadaptor->logon) {
+    if (leveldbadaptor->logs != NULL) {
+      //const int *data = (const int *) key.ToString().data();              Slice neet pahane
+      int *data;                            //added for comipiling
       Logging_LogMsg(leveldbadaptor->logs,"Put %d %x\n", data[0], data[1]);
     }
   }
-  WriteOptions write_options;
-  if (sync_size_limit > 0) {
-    async_data_size += key.size() + value.size();
-    if (async_data_size > sync_size_limit) {
-      write_options.sync = true;
-      async_data_size = 0;
+  leveldb_writeoptions_t *write_options;
+  if (leveldbadaptor->sync_size_limit > 0) {
+    //leveldbadaptor->async_data_size += Slice_size(key) + Slice_size(value);
+    if (leveldbadaptor->async_data_size > leveldbadaptor->sync_size_limit) {
+      leveldb_writeoptions_set_sync(write_options,true);
+      leveldbadaptor->async_data_size = 0;
     }
   } else
-  if (sync_time_limit > 0) {
+  if (leveldbadaptor->sync_time_limit > 0) {
     time_t now = time(NULL);
-    if (now - last_sync_time > sync_time_limit) {
-      write_options.sync = true;
-      last_sync_time = now;
+    if (now - leveldbadaptor->last_sync_time > leveldbadaptor->sync_time_limit) {
+      leveldb_writeoptions_set_sync(write_options,true);
+      leveldbadaptor->last_sync_time = now;
     }
   }
-  write_options.writeahead = writeahead;
-  leveldb::Status status = db_->Put(write_options, key, value);
+  //write_options.writeahead = writeahead;        How??
+  /*leveldb::Status status = db_->Put(write_options, key, value);
   if (status.ok()) {
     return 0;
   } else {
@@ -176,30 +189,32 @@ int LevelDBAdaptor::Put(const leveldb::Slice &key,
       }
     }
     return -1;
-  }
+  }*/
+    return -1;            //added for compiling
 }
 
-int LevelDBAdaptor::Delete(const leveldb::Slice &key) {
-  if (logon) {
-    if (logs != NULL) {
-      const int *data = (const int *) key.ToString().data();
+int LevelDBAdaptor_Delete(LevelDBAdaptor *leveldbadaptor,Slice *key) {
+  if (leveldbadaptor->logon) {
+    if (leveldbadaptor->logs != NULL) {
+      //const int *data = (const int *) key.ToString().data();
+      int *data;                                  //added for compiling
       Logging_LogMsg(leveldbadaptor->logs,"Delete %d %x\n", data[0], data[1]);
     }
   }
-  WriteOptions write_options;
-  db_->Delete(write_options, key);
+  leveldb_writeoptions_t *write_options;
+  //levedb_delete(leveldbadaptor->db_,write_options, key);    in c api arguments are more
   return 0;
 }
 
-int LevelDBAdaptor::Write(LevelDBAdaptor *leveldbadaptor,WriteBatch &batch) {
-  WriteOptions write_options;
-  Status s = db_->Write(write_options, &batch);
+int LevelDBAdaptor_Write(LevelDBAdaptor *leveldbadaptor,leveldb_writebatch_t *batch) {
+  //WriteOptions write_options;
+  leveldb_writeoptions_t *write_options;
+  /*Status s = db_->Write(write_options, &batch);
   if (!s.ok()) {
     return -1;
-  }
+  }*/
   return 0;
 }
-*/
 
 /*
 void LevelDBAdaptor_Report(LevelDBAdaptor *leveldbadaptor) {
@@ -216,4 +231,12 @@ bool LevelDBAdaptor_GetMetric(LevelDBAdaptor *leveldbadaptor,std::string* value)
   return leveldbadaptor->db_->GetProperty(Slice("leveldb.stats"), value);
 }
 */
+
+/*Slice LevelDBAdaptor_key(LevelDBIterator *leveldbiterator) { 
+  return leveldb_iter_key(leveldbiterator->iter_);
+} 
+
+Slice value() { 
+  return iter_->value(); 
+}*/
 //#endif

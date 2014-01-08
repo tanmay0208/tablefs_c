@@ -13,10 +13,10 @@
 #include "util/properties.h"
 #include "util/logging.h"
 #include "leveldb/c.h"
-//#include "leveldb/db.h"
+#include "leveldb/db.h"
 #include "leveldb/slice.h"
-//#include "leveldb/iterator.h"
-//#include "leveldb/write_batch.h"
+#include "leveldb/iterator.h"
+#include "leveldb/write_batch.h"
 
 //namespace tablefs {
 
@@ -55,7 +55,7 @@ typedef struct LevelDBAdaptor LevelDBAdaptor;
   void LevelDBAdaptor_Cleanup(LevelDBAdaptor *);
 
   int LevelDBAdaptor_Get(LevelDBAdaptor *,Slice *key,
-          char *result);
+          Slice *result);
 
   int LevelDBAdaptor_Put(LevelDBAdaptor *,Slice *key,
           char *values);
@@ -97,9 +97,8 @@ typedef struct LevelDBAdaptor LevelDBAdaptor;
   void LevelDBIterator_Prev(LevelDBIterator *leveldbiterator) ;
                                 //it was leveldb_iter_next bt changed it
 
-  //Slice key(LevelDBIterator *leveldbiterator) const { return leveldb_iter_key(leveldbiterator->iter_,); }
-
-//  leveldb::Slice value() const { return iter_->value(); }
+  Slice LevelDBAdaptor_key(LevelDBAdaptor *,LevelDBIterator *leveldbiterator);
+  Slice LevelDBAdaptor_value(LevelDBAdaptor *);
 
 
 

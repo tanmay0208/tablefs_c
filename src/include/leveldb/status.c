@@ -3,6 +3,8 @@
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
 #include "port/port.h"
 #include "leveldb/status.h"
 
@@ -17,7 +19,7 @@ static const char* Status_CopyState(const char* state) {
 }
 
 
-Status Status_constuctor_Slice(Status *status,Code code, const Slice* msg, Slice* msg2) {
+Status *Status_constuctor_Slice(Status *status,Code code, const Slice* msg, Slice* msg2) {
   assert(code != kOk);
   const uint32_t len1 = Slice_size(msg);
   const uint32_t len2 = Slice_size(msg2);
@@ -37,7 +39,7 @@ Status Status_constuctor_Slice(Status *status,Code code, const Slice* msg, Slice
 
 char* Status_ToString(Status *status) {
   if (status->state_ == NULL) {
-    return "OK";
+    return (char*)"OK";
   } else {
     char tmp[30];
     const char* type;
@@ -69,7 +71,7 @@ char* Status_ToString(Status *status) {
     char* result;
     strcpy(result,type);
     uint32_t length;
-    memcpy(&length, state_, sizeof(length));
+    memcpy(&length, status->state_, sizeof(length));
     //result.append(state_ + 5, length);
     return result;
   }
@@ -88,27 +90,27 @@ char* Status_ToString(Status *status) {
   }
 
   // Return error status of an appropriate type.
-  static Status Status_NotFound(Status *status,const Slice *msg, Slice *msg2) {
+  static Status* Status_NotFound(Status *status,const Slice *msg, Slice *msg2) {
     Slice_init(msg2);
     return Status_constuctor_Slice(status,kNotFound, msg, msg2);
   }
-  static Status Status_Corruption(Status *status,const Slice *msg, Slice *msg2) {
+  static Status* Status_Corruption(Status *status,const Slice *msg, Slice *msg2) {
     Slice_init(msg2);
     return Status_constuctor_Slice(status,kCorruption, msg, msg2);
   }
-  static Status Status_NotSupported(Status *status,const Slice *msg, Slice *msg2) {
+  static Status* Status_NotSupported(Status *status,const Slice *msg, Slice *msg2) {
     Slice_init(msg2);
     return Status_constuctor_Slice(status,kNotSupported, msg, msg2);
   }
-  static Status Status_InvalidArgument(Status *status,const Slice *msg, Slice *msg2) {
+  static Status* Status_InvalidArgument(Status *status,const Slice *msg, Slice *msg2) {
     Slice_init(msg2);
     return Status_constuctor_Slice(status,kInvalidArgument, msg, msg2);
   }
-  static Status Status_IOError(Status *status,const Slice *msg, Slice *msg2) {
+  static Status* Status_IOError(Status *status,const Slice *msg, Slice *msg2) {
     Slice_init(msg2);
     return Status_constuctor_Slice(status,kIOError, msg, msg2);
   }
-  static Status Status_NotFoundByFilter(Status *status,Slice *msg,
+  static Status* Status_NotFoundByFilter(Status *status,Slice *msg,
                          Slice *msg2) {
     Slice_init(msg2);
     Slice_init(msg);
@@ -147,3 +149,4 @@ inline void Status_operator(Status *status,const Status *s) {
     //return (status->state_ == NULL) ? kOk : static_cast<Code>(state_[4]);
   }
 //}  // namespace leveldb
+

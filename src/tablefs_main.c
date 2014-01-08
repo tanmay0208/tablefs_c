@@ -1,4 +1,4 @@
-  //#ifdef SUPPORTED
+//#ifdef SUPPORTED
 #define FUSE_USE_VERSION 26
 
 #include <fuse.h>
@@ -94,7 +94,7 @@ void wrap_destroy(void * data) {
 }
 
 static struct fuse_operations tablefs_operations;
-//#endif
+
 
 int main(int argc, char *argv[])
 {

@@ -53,6 +53,7 @@ LIBOBJECTS = \
 ./util/myhash.o \
 ./util/socket.o \
 ./fs/vector.o \
+./include/leveldb/status.o \
 
 METADBOBJECTS = \
 ./metadb/metadb_fs.o \
