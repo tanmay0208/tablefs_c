@@ -11,7 +11,7 @@
 
 /*DentryCache::~DentryCache() {         // it is default destructor 
 }*/ 
-bool DentryCache_Find(DentryCache *dentry_cache,tfs_meta_key_t *key, tfs_inode_t *value) {
+bool tfs_DentryCache_Find(DentryCache *dentry_cache,tfs_meta_key_t *key, tfs_inode_t *value) {
   //leveldb::MutexLock lock_cache_mutex(&cache_mutex);
 
   /*CacheMap::iterator it = lookup.find(key);

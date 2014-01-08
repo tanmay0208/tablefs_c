@@ -21,19 +21,22 @@ int vector_size(vector *v)
 	return v->size;
 }
 
+
 void vector_add(vector *v, void *e)
 {
 	if (v->size == 0) {
 		v->size = 10;
-		v->data = malloc(sizeof(void*) * v->size);
-		memset(v->data, '\0', sizeof(void) * v->size);
+		v->data = (void**)malloc(sizeof(e) * v->size);
+		//v->data = malloc(sizeof(void*) * v->size);
+		//memset(v->data, '\0', sizeof(void) * v->size);
+		memset(v->data, '\0', sizeof(e) * v->size);
 	}
 
 	// condition to increase v->data:
 	// last slot exhausted
 	if (v->size == v->count) {
 		v->size *= 2;
-		v->data = realloc(v->data, sizeof(void*) * v->size);
+		v->data = (void**)realloc(v->data, sizeof(void*) * v->size);
 	}
 
 	v->data[v->count] = e;
@@ -52,7 +55,7 @@ void vector_set(vector *v, int index, void *e)
 void *vector_get(vector *v, int index)
 {
 	if (index >= v->count) {
-		return;
+		//return;					apan :commented because of error
 	}
 
 	return v->data[index];

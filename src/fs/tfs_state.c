@@ -28,10 +28,10 @@ bool FileSystemState_IsEmpty(FileSystemState *filesystemstate) {
 
 
 void FileSystemState_constructor(FileSystemState *filesystemstate) {
- //metadb(NULL);
- //filesystemstate->max_inode_num(0);      max_inode_num is object of tfs_inode_t
+ filesystemstate->metadb=NULL;
+ filesystemstate->max_inode_num=0;      //max_inode_num is object of tfs_inode_t
  filesystemstate->threshold_=0;
- //logs(NULL) ;
+ filesystemstate->logs=NULL ;
 
 }
 
@@ -53,6 +53,10 @@ int FileSystemState_Setup(FileSystemState *filesystemstate,Properties *prop) {
      fprintf(stderr, "cannot open directory!\n");
      exit(1);
   }
+  filesystemstate->logs=(Logging*)malloc(sizeof(Logging));
+  Logging_constructor(filesystemstate->logs,Properties_getProperty_default(prop,"logfile",(char*) ""));
+  //Logging_SetDefault()        seems jhol 2 arguments are same
+  Logging_Open(filesystemstate->logs);
 
   /*logs = new Logging(prop.getProperty("logfile", ""));
   logs->SetDefault(logs); 		//Logging is class 
@@ -60,20 +64,21 @@ int FileSystemState_Setup(FileSystemState *filesystemstate,Properties *prop) {
 
   Properties *prop_ = prop;
   Properties_setProperty(prop_,"leveldb.db", strcat(filesystemstate->metadir_,"/meta"));
-  Properties_setProperty(prop_,"leveldb.create.if.missing.db", "true");
+  Properties_setProperty(prop_,"leveldb.create.if.missing.db",(char*)"true");
 
-  /*metadb = new LevelDBAdaptor();
-  metadb->SetProperties(prop_);
-  metadb->SetLogging(logs);					//LevelDB madhe handle karne
-  if (metadb->Init() < 0) {
-    printf("failed to open metadb %s\n", prop_.getProperty("leveldb.db").c_str());
+  filesystemstate->metadb =(LevelDBAdaptor*)malloc(sizeof(LevelDBAdaptor));
+  LevelDBAdaptor_constructor(filesystemstate->metadb);
+  //LevelDBAdaptor_SetProperties(filesystemstate->metadb,prop_);      prop_ is pointer & we need struct
+  LevelDBAdaptor_SetLogging(filesystemstate->metadb,filesystemstate->logs);					//LevelDB madhe handle karne
+  if (LevelDBAdaptor_Init(filesystemstate->metadb) < 0) {
+    printf("failed to open metadb %s\n", Properties_getProperty(prop_,"leveldb.db"));
     return -1;
   } else {
-    printf("open metadb successfully %s\n", metadir_.c_str());
+    printf("open metadb successfully %s\n",filesystemstate->metadir_);
   }
 
-  logs->LogMsg("Initialized two databases.\n");
-*/
+  Logging_LogMsg(filesystemstate->logs,"Initialized two databases.\n");
+
   char fpath[256];
   sprintf(fpath, "%s/root.dat", filesystemstate->datadir_);
   FILE *f = fopen(fpath, "r");
@@ -102,17 +107,17 @@ void FileSystemState_Destroy(FileSystemState *filesystemstate) {
   if (f != NULL) {
     //fprintf(f, "%u\n", filesystemstate->max_inode_num);   unsigned interger expected
     fclose(f);
-  /*  logs->LogMsg("fpath: %s\n", fpath);
+    Logging_LogMsg(filesystemstate->logs,"fpath: %s\n", fpath);
   } else {
-    logs->LogMsg("Cannot write the max inode num: %s %s\n", 
-                 fpath, strerror(errno));*/
+    Logging_LogMsg(filesystemstate->logs,"Cannot write the max inode num: %s %s\n", 
+                 fpath, strerror(errno));
   }
- /* if (metadb != NULL) {
-    metadb->Cleanup();
-    delete metadb;
+  if (filesystemstate->metadb != NULL) {
+    LevelDBAdaptor_Cleanup(filesystemstate->metadb);
+    free (filesystemstate->metadb);
   }
-  if (logs != NULL)			log and Metadb handle
-    delete logs;*/
+  if (filesystemstate->logs != NULL)			
+    free (filesystemstate->logs);
 }
 
 tfs_inode_t FileSystemState_NewInode(FileSystemState *filesystemstate) {

@@ -6,18 +6,18 @@
 //namespace tablefs {
 
 /*void TableFSWrapper_constructor() :
-  fs(NULL), tablefs_data(NULL), junkf(NULL)
+  tfs(NULL), tablefs_data(NULL), junkf(NULL)
 {
   memset(freefd, 0, sizeof(freefd));
 }*/ 
   TableFS *tablefs;
- TableFSWrapper_Setup(TableFSWrapper *tablefswrapper,Properties *prop) {
+int TableFSWrapper_Setup(TableFSWrapper *tablefswrapper,Properties *prop) {
   //tablefs_data = new tablefs::FileSystemState();
   //if (tablefs_data->Setup(prop) < 0)
     //return -1;
-  //fs = new TableFS();
-  //fs->SetState(tablefs_data);
-  //fs->Init(NULL);
+  //tfs = new TableFS();
+  //tfs->SetState(tablefs_data);
+  //tfs->Init(NULL);
    num_fd = 0;
   //if (prop.getProperty("TableFSWrapper_filesystem") == std::string("tablefs_pred")) {
     int i;
@@ -32,9 +32,9 @@
 
 void TableFSWrapper_destructor(TableFSWrapper *tablefswrapper) {
   fprintf(stderr, "DESTROY tablefs\n");
-  //if (fs != NULL) {
-    //fs->Destroy(tablefs_data);
-    //delete fs;
+  //if (tfs != NULL) {
+    //tfs->Destroy(tablefs_data);
+    //delete tfs;
   //}
   if (junkf != NULL) {
     fclose(junkf);
@@ -51,7 +51,7 @@ int TableFSWrapper_Mknod(TableFSWrapper *tablefswrapper,const char* path, mode_t
   if (junkf != NULL) {//junk
     //fwrite(junk, sizeof(junk), 1, junkf);
   }
-  ret = TableFS_MakeNode(fs,path, mode, dev);
+  ret = TableFS_MakeNode(tfs,path, mode, dev);
   if (ret != 0) {
     if (logon)
       fprintf(stderr, "Failed to create the file: %s\n", path);
@@ -69,7 +69,7 @@ int TableFSWrapper_Mkdir(TableFSWrapper *tablefswrapper,const char* path, mode_t
   if (junkf != NULL) {
     //fwrite(junk, sizeof(junk), 1, junkf);
   }
-  ret = TableFS_MakeDir(fs,path, mode);
+  ret = TableFS_MakeDir(tfs,path, mode);
   if (ret != 0) {
     if (logon)
       fprintf(stderr, "Failed to create the directory: %s\n", path);
@@ -85,7 +85,7 @@ int TableFSWrapper_Utime(TableFSWrapper *tablefswrapper,const char* path, struct
   if (junkf != NULL) {
     //fwrite(junk, sizeof(junk), 1, junkf);
   }
-  int ret = TableFS_UpdateTimens(fs,path, tv);
+  int ret = TableFS_UpdateTimens(tfs,path, tv);
   if (ret != 0) {
     if (logon)
       fprintf(stderr, "Failed to create the directory: %s\n", path);
@@ -99,7 +99,7 @@ int TableFSWrapper_Chmod(TableFSWrapper *tablefswrapper,const char* path, mode_t
   if (junkf != NULL) {
   //  fwrite(junk, sizeof(junk), 1, junkf);
   }
-  ret = TableFS_Chmod(fs,path, mode);
+  ret = TableFS_Chmod(tfs,path, mode);
   if (ret != 0) {
     if (logon)
       fprintf(stderr, "Failed to chmod the path: %s\n", path);
@@ -109,7 +109,7 @@ int TableFSWrapper_Chmod(TableFSWrapper *tablefswrapper,const char* path, mode_t
 }
 
 int TableFSWrapper_Stat(TableFSWrapper *tablefswrapper,const char* path, struct stat *buf) {
-  int ret = TableFS_GetAttr(fs,path, buf);
+  int ret = TableFS_GetAttr(tfs,path, buf);
   if (ret != 0) {
     if (logon)
       fprintf(stderr, "Failed to stat the path: %s\n", path);
@@ -118,16 +118,16 @@ int TableFSWrapper_Stat(TableFSWrapper *tablefswrapper,const char* path, struct 
 }
 
 int TableFSWrapper_Open(TableFSWrapper *tablefswrapper,const char* path, int flags) {
-  int fd = TableFSWrapper_GetFileDescriptor();
+  int fd = TableFSWrapperStat_GetFileDescriptor(tablefswrapper);
   //paths[fd] = std::string(path);
   offsets[fd] = 0;
   fis[fd].flags = flags;
   if (junkf != NULL) {
     //fwrite(junk, sizeof(path), 1, junkf);
   }
-  int ret = TableFS_Open(fs,path, &(fis[fd]));
+  int ret = TableFS_Open(tfs,path, &(fis[fd]));
   if (ret != 0) {
-    TableFSWrapper_ReleaseFileDescriptor(fd);
+    TableFSWrapperStat_ReleaseFileDescriptor(tablefswrapper,fd);
     if (logon)
       fprintf(stderr, "Failed to open the path: %s\n", path);
     return -1;
@@ -144,8 +144,8 @@ int TableFSWrapper_Write(TableFSWrapper *tablefswrapper,int fd, const char* buf,
  //mk const char *p;   //to convert paths[fd] into const
   char *p;			//addded for compiling
   strcpy(p,paths);
-  //int ret = fs->TableFS_Write(paths[fd].c_str(), buf, size, offsets[fd], &(fis[fd]));
-  int ret = TableFS_Write(fs,p, buf, size, offsets[fd], &(fis[fd]));
+  //int ret = tfs->TableFS_Write(paths[fd].c_str(), buf, size, offsets[fd], &(fis[fd]));
+  int ret = TableFS_Write(tfs,p, buf, size, offsets[fd], &(fis[fd]));
   if (junkf != NULL) {
     fwrite(buf, size, 1, junkf);
   }
@@ -162,7 +162,7 @@ int TableFSWrapper_Read(TableFSWrapper *tablefswrapper,int fd, char* buf, size_t
   /*const char *p;   //to convert paths[fd] into const
   strcpy(p,paths);
 
-  int ret = TableFS_Read(fs,p, buf, size, offsets[fd], &(fis[fd]));
+  int ret = TableFS_Read(tfs,p, buf, size, offsets[fd], &(fis[fd]));
   if (junkf != NULL) {
     fwrite(buf, size, 1, junkf);
   }
@@ -181,7 +181,7 @@ int fuse_filler_dir(void* buf, const char* name, const struct stat *stbuf, off_t
 
 int TableFSWrapper_Listdir(TableFSWrapper *tablefswrapper,const char* path) {
   struct fuse_file_info *fi;
-  int ret = TableFS_OpenDir(fs,path, fi);
+  int ret = TableFS_OpenDir(tfs,path, fi);
   if (ret != 0) {
     if (logon)
       fprintf(stderr, "Failed to open the path: %s\n", path);
@@ -191,7 +191,7 @@ int TableFSWrapper_Listdir(TableFSWrapper *tablefswrapper,const char* path) {
     //fwrite(junk, sizeof(junk), 1, junkf);
   }
   list_dir_count = 0;
-  if (TableFS_ReadDir(fs,path, NULL, fuse_filler_dir, 0, fi) != 0) {
+  if (TableFS_ReadDir(tfs,path, NULL, fuse_filler_dir, 0, fi) != 0) {
     if (logon)
       fprintf(stderr, "Failed to listdir the path: %s\n", path);
     return -1;
@@ -213,7 +213,7 @@ int lsstat_filler(void* buf, const char* name, const struct stat *stbuf, off_t o
 
 int TableFSWrapper_Lsstat(TableFSWrapper *tablefswrapper,const char* path) {
   struct fuse_file_info *fi;
-  int ret = TableFS_OpenDir(fs,path, fi);
+  int ret = TableFS_OpenDir(tfs,path, fi);
   if (ret != 0) {
     if (logon)
       fprintf(stderr, "Failed to open the path: %s\n", path);
@@ -227,7 +227,7 @@ int TableFSWrapper_Lsstat(TableFSWrapper *tablefswrapper,const char* path) {
   lsstat_end_fpath = lsstat_fpath + strlen(lsstat_fpath);
   lsstat_fs = tablefswrapper;//lssta
   lsstat_count = 0;
-  if (TableFS_ReadDir(fs,path, NULL, lsstat_filler, 0, fi) != 0) {
+  if (TableFS_ReadDir(tfs,path, NULL, lsstat_filler, 0, fi) != 0) {
     if (logon)
       fprintf(stderr, "Failed to listdir the path: %s\n", path);
     return -1;
@@ -259,7 +259,7 @@ int scanfile_filler(void* buf, const char* name,
 
 int TableFSWrapper_Scanfile(TableFSWrapper *tablefswrapper,const char* path) {
   struct fuse_file_info *fi;
-  int ret = TableFS_OpenDir(fs,path, fi);
+  int ret = TableFS_OpenDir(tfs,path, fi);
   if (ret != 0) {
     if (logon)
       fprintf(stderr, "Failed to open the path: %s\n", path);
@@ -273,7 +273,7 @@ int TableFSWrapper_Scanfile(TableFSWrapper *tablefswrapper,const char* path) {
   scanfile_end_fpath = scanfile_fpath + strlen(scanfile_fpath);
   scanfile_fs = tablefswrapper;
   scanfile_count = 0;
-  if (TableFS_ReadDir(fs,path,NULL, scanfile_filler, 0, fi) != 0) {
+  if (TableFS_ReadDir(tfs,path,NULL, scanfile_filler, 0, fi) != 0) {
     if (logon)
       fprintf(stderr, "Failed to listdir the path: %s\n", path);
     return -1;
@@ -288,7 +288,7 @@ int TableFSWrapper_Rename(TableFSWrapper *tablefswrapper,const char* old_path,
     fwrite(new_path, strlen(new_path), 1, junkf);
   }
 
-  int ret = TableFS_Rename(fs,old_path, new_path);
+  int ret = TableFS_Rename(tfs,old_path, new_path);
   if (ret != 0) {
     if (logon)
       fprintf(stderr,
@@ -304,7 +304,7 @@ int TableFSWrapper_Unlink(TableFSWrapper *tablefswrapper,const char* path) {
     fwrite(path, strlen(path), 1, junkf);
   }
 
-  int ret = TableFS_Unlink(fs,path);
+  int ret = TableFS_Unlink(tfs,path);
   if (ret != 0) {
     if (logon)
       fprintf(stderr, "Failed to unlink %s\n", path);
@@ -316,7 +316,7 @@ int TableFSWrapper_Unlink(TableFSWrapper *tablefswrapper,const char* path) {
 int TableFSWrapper_Close(TableFSWrapper *tablefswrapper,int fd) {
   /*const char *p;
   strcpy(p,paths);
-  int ret = Tablefs_Release(fs,p, &(fis[fd]));
+  int ret = Tablefs_Release(tfs,p, &(fis[fd]));
   ReleaseFileDescriptor(fd);
   if (ret != 0) {
     if (logon)
@@ -329,10 +329,10 @@ bool TableFSWrapper_GetStat(TableFSWrapper *tablefswrapper,char *stat, char **va
   if (junkf != NULL) {
     //fwrite(junk, sizeof(junk), 1, junkf);
   }
-  return TableFS_GetStat(fs,stat, value);
+  return TableFS_GetStat(tfs,stat, value);
 }
 
-int TableFSWrapper_GetFileDescriptor(TableFSWrapper *tablefswrapper) {
+int TableFSWrapperStat_GetFileDescriptor(TableFSWrapper *tablefswrapper) {
   int i;
   for (i = 0; i < FDLIMIT; ++i)
     if (freefd[i] == 0) {
@@ -342,7 +342,7 @@ int TableFSWrapper_GetFileDescriptor(TableFSWrapper *tablefswrapper) {
   return -1;
 }
 
-void TableFSWrapper_ReleaseFileDescriptor(TableFSWrapper *tablefswrapper,int fd) {
+void TableFSWrapperStat_ReleaseFileDescriptor(TableFSWrapper *tablefswrapper,int fd) {
   freefd[fd] = 0;
 }
 
@@ -354,7 +354,7 @@ int TableFSTestWrapper_Mknod(TableFSTestWrapper *tablefstestwrapper,const char* 
     errno = EEXIST;
     return -1;
   }
-  /*ret = fs->metadb->Put(key, std::string(""));
+  /*ret = tfs->metadb->Put(key, std::string(""));
   if (ret != 0) {
     if (logon)
       fprintf(stderr, "Failed to create the file: %s\n", path);
@@ -367,7 +367,7 @@ int TableFSTestWrapper_Stat(TableFSTestWrapper *tablefstestwrapper,const char* p
   char *result;
   //leveldb::Slice key(path, strlen(path));
   int ret = 0;
-  /*if (fs->metadb->Get(key, result) > 0) {
+  /*if (tfs->metadb->Get(key, result) > 0) {
     lstat("/tmp", buf);
   } else {
     ret = -1;

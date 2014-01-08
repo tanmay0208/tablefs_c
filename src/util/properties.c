@@ -36,7 +36,7 @@ char *Properties_getProperty(Properties *properties,const char *key) {
   } else {
     return std::string("/");
   }*/
-    return ("/");    // added for compiling , delete afterward
+    return ((char*)"/");    // added for compiling , delete afterward
 }
 
 char *Properties_getProperty_default(Properties *properties,const char *key,

@@ -1,4 +1,4 @@
-//#ifdef SUPPORTED
+
 /*
  *
  *  Created on: Jul 19, 2011
@@ -8,27 +8,28 @@
 #ifndef LEVELDBADAPTOR_H_
 #define LEVELDBADAPTOR_H_
 
-//#include <vector>
+#include <stdlib.h>
+#include "fs/vector.h"
 #include "util/properties.h"
 #include "util/logging.h"
+#include "leveldb/c.h"
 //#include "leveldb/db.h"
-//#include "leveldb/slice.h"
+#include "leveldb/slice.h"
 //#include "leveldb/iterator.h"
 //#include "leveldb/write_batch.h"
 
 //namespace tablefs {
 
 struct LevelDBIterator {
-//private:
- /*leveldb::Iterator *iter_;*/
+	leveldb_iterator_t *iter_;
 };
 typedef struct LevelDBIterator LevelDBIterator;
 
 
 struct LevelDBAdaptor {
   char* db_name;
-//  DB *db_;
-//  leveldb::Cache *cache_;
+  leveldb_t *db_;
+  leveldb_cache_t *cache_;
   Logging* logs;
   Properties p_;
   bool logon;
@@ -45,7 +46,7 @@ typedef struct LevelDBAdaptor LevelDBAdaptor;
 
   void LevelDBAdaptor_destructor(LevelDBAdaptor *);
 
-  void LevelDBAdaptor_SetProperties(LevelDBAdaptor *leveldbadaptor,Properties *p);
+  void LevelDBAdaptor_SetProperties(LevelDBAdaptor *leveldbadaptor,Properties p);
 
   void LevelDBAdaptor_SetLogging(LevelDBAdaptor *leveldbadaptor,Logging *logs_);
 
@@ -53,18 +54,18 @@ typedef struct LevelDBAdaptor LevelDBAdaptor;
 
   void LevelDBAdaptor_Cleanup(LevelDBAdaptor *);
 
-  /*int LevelDBAdaptor_Get(LevelDBAdaptor *,const leveldb::Slice &key,
-          std::string &result);
+  int LevelDBAdaptor_Get(LevelDBAdaptor *,Slice *key,
+          char *result);
 
-  int LevelDBAdaptor_Put(LevelDBAdaptor *,const leveldb::Slice &key,
-          const leveldb::Slice &values);
-  */
+  int LevelDBAdaptor_Put(LevelDBAdaptor *,Slice *key,
+          char *values);
+  
   int LevelDBAdaptor_Sync(LevelDBAdaptor *);
-/*
-  int LevelDBAdaptor_Write(LevelDBAdaptor *,leveldb::WriteBatch &batch);
 
-  int LevelDBAdaptor_Delete(LevelDBAdaptor *,const leveldb::Slice &key);
-*/
+  int LevelDBAdaptor_Write(LevelDBAdaptor *,leveldb_writebatch_t *batch);
+
+  int LevelDBAdaptor_Delete(LevelDBAdaptor *,Slice *key);
+
   LevelDBIterator* LevelDBAdaptor_GetNewIterator(LevelDBAdaptor *);
 
   void LevelDBAdaptor_Compact(LevelDBAdaptor *);
@@ -79,30 +80,28 @@ typedef struct LevelDBAdaptor LevelDBAdaptor;
 
 
 
-//public:
-/*
-  void LevelDBIterator_constructor(LevelDBIterator *,leveldb::Iterator *iter) : iter_(iter) {}
+  void LevelDBIterator_constructor(LevelDBIterator *leveldbiterator,leveldb_iterator_t *iter); 
 
-  void LevelDBIterator_destructor() {LevelDBIterator *, delete iter_; }
+  void LevelDBIterator_destructor(LevelDBIterator *leveldbiterator);
 
-  bool LevelDBIterator_Valid() const {LevelDBIterator *, return iter_->Valid(); };
+  bool LevelDBIterator_Valid(LevelDBIterator *leveldbiterator);
 
-  void LevelDBIterator_SeekToFirst() {LevelDBIterator *, iter_->SeekToFirst(); }
+  void LevelDBIterator_SeekToFirst(LevelDBIterator *leveldbiterator);
 
-  void LevelDBIterator_SeekToLast() {LevelDBIterator *, iter_->SeekToLast(); }
+  void LevelDBIterator_SeekToLast(LevelDBIterator *leveldbiterator);
 
- // void LevelDBIterator_Seek(LevelDBIterator *,const leveldb::Slice &target) { iter_->Seek(target); }
+  void LevelDBIterator_Seek(LevelDBIterator *leveldbiterator,Slice *target) ;
 
-  void LevelDBIterator_Next() {LevelDBIterator *, iter_->Next(); }
+  void LevelDBIterator_Next(LevelDBIterator *leveldbiterator) ;
 
-  void LevelDBIterator_Prev() {LevelDBIterator *, iter_->Next(); }
+  void LevelDBIterator_Prev(LevelDBIterator *leveldbiterator) ;
+                                //it was leveldb_iter_next bt changed it
 
-
-//  leveldb::Slice key() const { return iter_->key(); }
+  //Slice key(LevelDBIterator *leveldbiterator) const { return leveldb_iter_key(leveldbiterator->iter_,); }
 
 //  leveldb::Slice value() const { return iter_->value(); }
 
-*/
+
 
 
 #endif /* LEVELDBADAPTOR_H_ */

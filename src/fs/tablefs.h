@@ -29,7 +29,7 @@ typedef struct TableFS TableFS;
 
   void TableFS_SetState(TableFS *,FileSystemState* state);
 
-  inline void* TableFS_Init(TableFS *,struct fuse_conn_info *conn);
+  void* TableFS_Init(TableFS *,struct fuse_conn_info *conn);
 
   void TableFS_Destroy(TableFS *,void * data);
 
@@ -104,17 +104,17 @@ typedef struct TableFS TableFS;
                        tfs_inode_t inode,
                        mode_t mode,
                        dev_t dev);
-
+/*
   tfs_inode_val_t TableFS_InitInodeValue(TableFS *,tfs_inode_t inum,
                                  mode_t mode,
                                  dev_t dev,
-                                 Slice *filename);
+                                 leveldb::Slice filename);
 
-  char* TableFS_InitInodeValue_char(TableFS *,const char *old_value,
-                             Slice *filename);                            //_char added 
-
- void TableFS_FreeInodeValue(TableFS *,tfs_inode_val_t *ival);
-
+  char* TableFS_InitInodeValue(TableFS *,const char *old_value,
+                             leveldb::Slice filename);
+*/
+ /* void TableFS_FreeInodeValue(TableFS *,tfs_inode_val_t *ival);
+*/
  /* bool TableFS_ParentPathLookup(TableFS *,const char* path,
                         tfs_meta_key_t *key,
                         tfs_inode_t &inode_in_search,

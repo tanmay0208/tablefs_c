@@ -1,5 +1,5 @@
-CC = gcc
-C = g++
+C = gcc
+CC = g++
 
 #-----------------------------------------------
 # Uncomment exactly one of the lines labelled (A), (B), and (C) below

@@ -16,12 +16,13 @@
 #include <sys/types.h>
 #include <sys/xattr.h>
 #include <sys/time.h>
-#include "fs/vector.h"
+//#include <vector>
 //#include <algorithm>
 #include <pthread.h>
 //#include <sstream>
 #include "tablefs.h"
 #include "util/myhash.h"
+#include "adaptor/leveldb_adaptor.h"
 #include "util/mutexlock.h"
 #include "util/socket.h"
 //#include "leveldb/env.h"
@@ -50,18 +51,18 @@ inline static void BuildMetaKey_tablefs(TableFS *tablefs,const tfs_inode_t inode
   key->hash_id = hash_id;
 }
 
-inline static void BuildMetaKey_path(const char *path,
+inline static void BuildMetaKey_path(TableFS *tablefs,const char *path,
                                 const int len,
                                 const tfs_inode_t inode_id,
                                 tfs_meta_key_t *key) {
-  BuildMetaKey(inode_id, murmur64(path, len, 123), key);
+  BuildMetaKey_tablefs(tablefs,inode_id, murmur64(path, len, 123), key);
 }
 
-inline static bool IsKeyInDir(const Slice *key,
-                              const tfs_meta_key_t *dirkey) {
-  const tfs_meta_key_t* rkey = (const tfs_meta_key_t *) Slice_data(key);
-  return rkey->inode_id == dirkey->inode_id;							//levelDB
-} 
+/*inline static bool IsKeyInDir(const leveldb::Slice &key,
+                              const tfs_meta_key_t &dirkey) {
+  const tfs_meta_key_t* rkey = (const tfs_meta_key_t *) key.data();
+  return rkey->inode_id == dirkey.inode_id;							//levelDB
+}*/ 
 
 const tfs_inode_header *GetInodeHeader(const char *value) {
   //return reinterpret_cast<const tfs_inode_header*> (value.data());		//return type handle
@@ -166,41 +167,36 @@ void TableFS_InitStat(TableFS *tablefs,tfs_stat_t *statbuf,
   statbuf->st_mtim.tv_sec = now;
 }
 
-tfs_inode_val_t TableFS_InitInodeValue(TableFS *tablefs,tfs_inode_t inum,
+/*tfs_inode_val_t TableFS_InitInodeValue(tfs_inode_t inum,
                                         mode_t mode,
                                         dev_t dev,
-                                        Slice *filename) {
+                                        leveldb::Slice filename) {
   tfs_inode_val_t ival;
-  ival.size = TFS_INODE_HEADER_SIZE + Slice_size(filename) + 1;
-  //ival.value = new char[ival.size];
-  ival.value=(char*)malloc(ival.size*sizeof(char));              //Zhol marla
-
-  //tfs_inode_header* header = reinterpret_cast<tfs_inode_header*>(ival.value);      //reinterpret_cast
-  tfs_inode_header* header;
-
-  TableFS_InitStat(tablefs,&header->fstat, inum, mode, dev);    //zol marla    second argu:: &
+  ival.size = TFS_INODE_HEADER_SIZE + filename.size() + 1;
+  ival.value = new char[ival.size];
+  tfs_inode_header* header = reinterpret_cast<tfs_inode_header*>(ival.value);
+  InitStat(header->fstat, inum, mode, dev);
   header->has_blob = 0;
-  header->namelen = Slice_size(filename);
+  header->namelen = filename.size();
   char* name_buffer = ival.value + TFS_INODE_HEADER_SIZE;
-  memcpy(name_buffer, Slice_data(filename), Slice_size(filename));
+  memcpy(name_buffer, filename.data(), filename.size());
   name_buffer[header->namelen] = '\0';
   return ival;
 }
-
-char *TableFS_InitInodeValue_char(TableFS *tablefs,const char *old_value,
-                                    Slice *filename) {
+*/
+/*char *TableFS_InitInodeValue(const char *old_value,
+                                    leveldb::Slice filename) {
   //TODO: Optimize avoid too many copies
-  char *new_value;
-  strcpy(new_value,old_value);
+  std::string new_value = old_value;
   tfs_inode_header header = *GetInodeHeader(old_value);
-  //new_value.replace(TFS_INODE_HEADER_SIZE, header.namelen+1,
-  //                  SLice_data(filename), Slice_size(filename)+1);   //used replace 
-  header.namelen = Slice_size(filename);
-  UpdateInodeHeader(new_value, &header);
+  new_value.replace(TFS_INODE_HEADER_SIZE, header.namelen+1,
+                    filename.data(), filename.size()+1);
+  header.namelen = filename.size();
+  UpdateInodeHeader(new_value, header);
 
   return new_value;
-} 
-
+}
+*/
 
 /*void TableFS_FreeInodeValue(tfs_inode_val_t &ival) {
   if (ival.value != NULL) {
@@ -299,7 +295,7 @@ void do_monitor(LevelDBAdaptor* metadb) {
 /*  std::string metric;
   if (metadb->GetMetric(&metric)) {
     const int metric_cnt = 13;
-&    int r[metric_cnt];
+    int r[metric_cnt];
     std::stringstream ssmetric(metric);
     for (int i = 0; i < metric_cnt; ++i)
       ssmetric >> r[i];
@@ -602,7 +598,7 @@ int TableFS_Open(TableFS *tablefs,const char *path, struct fuse_file_info *fi) {
         fh->flags_ = fi->flags;
         fh->fd_ = TableFS_OpenDiskFile(tablefs,iheader, fh->flags_);
         if (fh->fd_ < 0) {
-          InodeCacheRelease(tablefs->inode_cache,handle);
+          InodeCache_Release(tablefs->inode_cache,handle);
           ret = -errno;
         }
     }
@@ -799,12 +795,12 @@ int TableFS_Truncate(TableFS *tablefs,const char *path, off_t new_size) {
 
     if (iheader->has_blob > 0) {
       if (new_size > FileSystemState_GetThreshold(tablefs->state_)) {
-        TruncateDiskFile(iheader->fstat.st_ino, new_size);
+        TableFS_TruncateDiskFile(tablefs,iheader->fstat.st_ino, new_size);
       } else {
 	
         char* buffer;/* = new char[new_size];*/                                 // tan::See for "for loop" me,mory allocation 
         buffer=(char *)malloc(sizeof(new_size));
-        MigrateDiskFileToBuffer(iheader->fstat.st_ino, buffer, new_size);
+        TableFS_MigrateDiskFileToBuffer(tablefs,iheader->fstat.st_ino, buffer, new_size);
         UpdateInlineData(handle->value_, buffer, 0, new_size);
         free(buffer);                                 // tan::See for "for loop" me,mory deallocation
       }
@@ -892,7 +888,8 @@ int TableFS_Symlink(TableFS *tablefs,const char *target, const char *path) {
   InodeMutex_Unlock(tablefs->fstree_lock,&key);
   free(value);
   //delete [] value;                                       // tan::See for "for loop" me,mory
-  return 0;}
+  return 0;
+}
 
 int TableFS_Unlink(TableFS *tablefs,const char *path) {
 #ifdef  TABLEFS_DEBUG
@@ -910,7 +907,7 @@ int TableFS_Unlink(TableFS *tablefs,const char *path) {
     const tfs_inode_header *value = GetInodeHeader(handle->value_);
     if (value->fstat.st_size > FileSystemState_GetThreshold(tablefs->state_)) {
       char fpath[128];
-     TableFS_GetDiskFilePath(tablefs,fpath, value->fstat.st_ino);
+      TableFS_GetDiskFilePath(tablefs,fpath, value->fstat.st_ino);
       unlink(fpath);
     }
     tfs_DentryCache_Evict(tablefs->dentry_cache,&key);
@@ -931,7 +928,7 @@ int TableFS_MakeNode(TableFS *tablefs,const char *path, mode_t mode, dev_t dev) 
 #endif
   tfs_meta_key_t key;
   /*leveldb::Slice filename;
-  if (!&PathLookup(path, key, filename)) {
+  if (!PathLookup(path, key, filename)) {
     return TableFS_FSError(tablefs,"MakeNode: No such parent file or directory\n");
   }
 
@@ -1152,7 +1149,7 @@ int TableFS_UpdateTimens(TableFS *tablefs,const char *path, const struct timespe
     return TableFS_FSError(tablefs,"No such file or directory\n");
   }
   int ret = 0;
-  InodeMutex_Writelock(tablefs->fstree_lock,&key);
+  //InodeMutex_Writelock(tablefs->fstree_lock,&key);
   InodeCacheHandle* handle = InodeCache_Get(tablefs->inode_cache,key, INODE_WRITE);
   if (handle != NULL) {
     {
@@ -1181,10 +1178,10 @@ int TableFS_Chmod(TableFS *tablefs,const char *path, mode_t mode) {
   InodeMutex_WriteLock(tablefs->fstree_lock,&key);
   InodeCacheHandle* handle = InodeCache_Get(tablefs->inode_cache,key, INODE_WRITE);
   if (handle != NULL) {
-    //const tfs_stat_t *value = GetAttribute(handle->value_);    //levedb
+    //const tfs_stat_t *value = GetAttribute(handle->value_);    //leveldb
     const tfs_stat_t *value;
     tfs_stat_t new_value = *value;
-    new_value.st_mode= mode;
+    new_value.st_mode = mode;
     UpdateAttribute(handle->value_, &new_value);		//& takla
     InodeCache_WriteBack(tablefs->inode_cache,handle);
     InodeCache_Release(tablefs->inode_cache,handle);
@@ -1197,9 +1194,9 @@ int TableFS_Chmod(TableFS *tablefs,const char *path, mode_t mode) {
 
 int TableFS_Chown(TableFS *tablefs,const char *path, uid_t uid, gid_t gid) {
   tfs_meta_key_t key;
-  if (!TableFS_PathLookup(tablefs,path, &key))
+  if (!TableFS_PathLookup(tablefs,path, &key)) {
     return TableFS_FSError(tablefs,"No such file or directory\n");
-  
+  }
   int ret = 0;
   InodeMutex_WriteLock(tablefs->fstree_lock,&key);
   InodeCacheHandle* handle = InodeCache_Get(tablefs->inode_cache,key, INODE_WRITE);
@@ -1213,8 +1210,7 @@ int TableFS_Chown(TableFS *tablefs,const char *path, uid_t uid, gid_t gid) {
  InodeCache_WriteBack(tablefs->inode_cache,handle);
     InodeCache_Release(tablefs->inode_cache,handle);
     return 0;
-  } 
-  else {
+  } else {
     ret = -ENOENT;
   }
   InodeMutex_Unlock(tablefs->fstree_lock,&key);

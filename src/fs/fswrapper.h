@@ -53,7 +53,46 @@ typedef struct FileSystemWrapper FileSystemWrapper;
     return stat(path, buf);
   }
 
-  /*virtual*/ int FileSystemWrapper_Listdir(FileSystemWrapper *filesystemwrapper,const char* path) {
+  /*virtual*/ int FileSystemWrapper_Rename(FileSystemWrapper *filesystemwrapper,const char* old_path, const char* new_path) {
+    return rename(old_path, new_path);
+  }
+
+  /*virtual*/ int FileSystemWrapper_Unlink(FileSystemWrapper *filesystemwrapper,const char* path) {
+    return unlink(path);
+  }
+
+  /*virtual*/ int FileSystemWrapper_Open(FileSystemWrapper *filesystemwrapper,const char* path, int flags) {
+    return open(path, flags);
+  }
+
+  /*virtual*/ int FileSystemWrapper_Seek(FileSystemWrapper *filesystemwrapper,int fd, off_t offset) {
+    return lseek(fd, offset, SEEK_SET);
+  }
+
+  /*virtual*/ int FileSystemWrapper_Write(FileSystemWrapper *filesystemwrapper,int fd, const char* buf, size_t size) {
+    return write(fd, buf, size);
+  }
+
+  /*virtual*/ int FileSystemWrapper_Read(FileSystemWrapper *filesystemwrapper,int fd, char* buf, size_t size) {
+    return read(fd, buf, size);
+  }
+
+  /*virtual*/ int FileSystemWrapper_Close(FileSystemWrapper *filesystemwrapper,int fd) {
+    return close(fd);
+  }
+
+  /*virtual*/ bool FileSystemWrapper_GetStat(FileSystemWrapper *filesystemwrapper,char *stat, char **value) {
+    return false;
+  }
+
+  /*virtual*/ void FileSystemWrapper_Compact(FileSystemWrapper *filesystemwrapper) {
+  }
+
+  /*virtual*/ MetricStat* GetMetricStat(FileSystemWrapper *filesystemwrapper) {
+    return NULL;
+  }
+
+    /*virtual*/ int FileSystemWrapper_Listdir(FileSystemWrapper *filesystemwrapper,const char* path) {
     DIR *fd;
     struct dirent *dirp;
     if (!(fd = opendir(path))) {
@@ -118,44 +157,6 @@ typedef struct FileSystemWrapper FileSystemWrapper;
     return count;
   }
 
-  /*virtual*/ int FileSystemWrapper_Rename(FileSystemWrapper *filesystemwrapper,const char* old_path, const char* new_path) {
-    return rename(old_path, new_path);
-  }
-
-  /*virtual*/ int FileSystemWrapper_Unlink(FileSystemWrapper *filesystemwrapper,const char* path) {
-    return unlink(path);
-  }
-
-  /*virtual*/ int FileSystemWrapper_Open(FileSystemWrapper *filesystemwrapper,const char* path, int flags) {
-    return open(path, flags);
-  }
-
-  /*virtual*/ int FileSystemWrapper_Seek(FileSystemWrapper *filesystemwrapper,int fd, off_t offset) {
-    return lseek(fd, offset, SEEK_SET);
-  }
-
-  /*virtual*/ int FileSystemWrapper_Write(FileSystemWrapper *filesystemwrapper,int fd, const char* buf, size_t size) {
-    return write(fd, buf, size);
-  }
-
-  /*virtual*/ int FileSystemWrapper_Read(FileSystemWrapper *filesystemwrapper,int fd, char* buf, size_t size) {
-    return read(fd, buf, size);
-  }
-
-  /*virtual*/ int FileSystemWrapper_Close(FileSystemWrapper *filesystemwrapper,int fd) {
-    return close(fd);
-  }
-
-  /*virtual*/ bool FileSystemWrapper_GetStat(FileSystemWrapper *filesystemwrapper,char *stat, char **value) {
-    return false;
-  }
-
-  /*virtual*/ void FileSystemWrapper_Compact(FileSystemWrapper *filesystemwrapper) {
-  }
-
-  /*virtual*/ MetricStat* GetMetricStat(FileSystemWrapper *filesystemwrapper) {
-    return NULL;
-  }
 //};
 
 //class TableFSWrapper : public FileSystemWrapper {
@@ -251,7 +252,7 @@ typedef struct TableFSWrapper TableFSWrapper;
 
 //protected:
   FileSystemState *tablefs_data;
-  TableFS *fs;
+  TableFS *tfs;                  //multiple declarion of it first in tablefs.c , solve
   enum { FDLIMIT = 128 };
   struct fuse_file_info fis[FDLIMIT];
   char paths[FDLIMIT];
@@ -262,8 +263,8 @@ typedef struct TableFSWrapper TableFSWrapper;
   //char junk[TFS_INODE_HEADER_SIZE];
   FILE* junkf;
 
-  int TableFSWrapperStat_GetFileDescriptor();
-  void TableFSWrapperStat_ReleaseFileDescriptor(int fd);
+  int TableFSWrapperStat_GetFileDescriptor(TableFSWrapper *);
+  void TableFSWrapperStat_ReleaseFileDescriptor(TableFSWrapper *,int fd);
 //};
 
 //class TableFSTestWrapper : public TableFSWrapper {

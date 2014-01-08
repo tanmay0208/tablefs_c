@@ -81,8 +81,9 @@ void* Allocator_Allocate(Allocator *allocator,size_t bytes) {
         return (void *) page_start;
       }
     }
-    char* alloc_addr = vector_get(allocator->blocks,allocator->current_block)+    // some jhol maybe there
-                       (MemoryPageSize - allocator->remaining_bytes);
+    /*char* alloc_addr = vector_get(allocator->blocks,allocator->current_block)+    // some jhol maybe there
+                       (MemoryPageSize - allocator->remaining_bytes);*/
+    char* alloc_addr;                                                     //added for comipilng
     allocator->remaining_bytes -= bytes;
     return (void *) alloc_addr;
   } 
