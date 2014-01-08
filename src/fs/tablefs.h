@@ -28,7 +28,7 @@ typedef struct TableFS TableFS;
 
   void TableFS_SetState(TableFS *,FileSystemState* state);
 
-  inline void* TableFS_Init(TableFS *,struct fuse_conn_info *conn);
+  void* TableFS_Init(TableFS *,struct fuse_conn_info *conn);
 
   void TableFS_Destroy(TableFS *,void * data);
 

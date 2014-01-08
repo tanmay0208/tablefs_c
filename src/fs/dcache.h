@@ -52,9 +52,9 @@ typedef struct DentryCache DentryCache;
   
 void tfs_DentryCache_constructor(DentryCache *,size_t);
 
-bool tfs_DentryCache_Find (DentryCache *,tfs_meta_key_t *, tfs_inode_t *);
+bool tfs_DentryCache_Find (DentryCache *,tfs_meta_key_t *, tfs_inode_t);
 
-void tfs_DentryCache_Insert (DentryCache *,tfs_meta_key_t *, const tfs_inode_t *);
+void tfs_DentryCache_Insert (DentryCache *,tfs_meta_key_t *, const tfs_inode_t);
 
 void tfs_DentryCache_Evict(DentryCache *,tfs_meta_key_t *);
 

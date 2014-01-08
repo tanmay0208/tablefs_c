@@ -11,7 +11,7 @@
 
 /*DentryCache::~DentryCache() {         // it is default destructor 
 }*/ 
-bool tfs_DentryCache_Find(DentryCache *dentry_cache,tfs_meta_key_t *key, tfs_inode_t *value) {
+bool tfs_DentryCache_Find(DentryCache *dentry_cache,tfs_meta_key_t *key, tfs_inode_t value) {
   //leveldb::MutexLock lock_cache_mutex(&cache_mutex);
 
   /*CacheMap::iterator it = lookup.find(key);
@@ -27,7 +27,7 @@ bool tfs_DentryCache_Find(DentryCache *dentry_cache,tfs_meta_key_t *key, tfs_ino
     return true;  // Added to for the sake of compiling ..
 }
 
-void tfs_DentryCache_Insert(DentryCache *dentry_cache,tfs_meta_key_t *key, const tfs_inode_t *value) {	
+void tfs_DentryCache_Insert(DentryCache *dentry_cache,tfs_meta_key_t *key, const tfs_inode_t value) {	
 	/* Ashay: void tfs_DentryCache_Insert(Dentrycache *dentry_cache,tfs_meta_key_t &key, const tfs_inode_t &value) {	
 	*/
   //leveldb::MutexLock lock_cache_mutex(&cache_mutex);

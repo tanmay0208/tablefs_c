@@ -43,7 +43,7 @@ void tfs_file_handle_t_constructor(tfs_file_handle_t *tfs_file_handle) {				//St
   tfs_file_handle->fd_=-1;
 }
 
-inline static void BuildMetaKey_tablefs(TableFS *tablefs,const tfs_inode_t inode_id,
+inline static void BuildMetaKey(const tfs_inode_t inode_id,
                                 const tfs_hash_t hash_id,
                                 tfs_meta_key_t *key) {
   key->inode_id = inode_id;
@@ -211,7 +211,7 @@ void TableFS_FreeInodeValue(tfs_inode_val_t *ival) {
 
 bool TableFS_ParentPathLookup(TableFS *tablefs,const char *path,
                                tfs_meta_key_t *key,
-                               tfs_inode_t *inode_in_search,
+                               tfs_inode_t inode_in_search,
                                const char* lastdelimiter) {
   const char* lpos=path;
   const char* rpos;
@@ -220,7 +220,7 @@ bool TableFS_ParentPathLookup(TableFS *tablefs,const char *path,
   //inode_in_search = ROOT_INODE_ID;                 //further implementation
   while ((rpos = strchr(lpos+1, PATH_DELIMITER)) != NULL) {
     if (rpos - lpos > 0) {
-      BuildMetaKey(lpos+1, rpos-lpos-1, inode_in_search, key);
+      BuildMetaKey_path(lpos+1, rpos-lpos-1, inode_in_search, key);
       if (!tfs_DentryCache_Find(tablefs->dentry_cache,key, inode_in_search)) {
         {
           InodeMutex_ReadLock(tablefs->fstree_lock,key);
@@ -234,7 +234,7 @@ bool TableFS_ParentPathLookup(TableFS *tablefs,const char *path,
             errno = ENOENT;
             flag_found = false;
           }
-          fstree_lockInodeMutex_Unlock(tablefs->fstree_lock,key);
+          InodeMutex_Unlock(tablefs->fstree_lock,key);
           if (!flag_found) {
             return false;
           }
@@ -244,7 +244,7 @@ bool TableFS_ParentPathLookup(TableFS *tablefs,const char *path,
     lpos = rpos;
   }
   if (lpos == path) {
-    BuildMetaKey(NULL, 0, ROOT_INODE_ID, key);
+    BuildMetaKey_path(NULL, 0, ROOT_INODE_ID, key);
   }
   lastdelimiter = lpos;
   return flag_found;
@@ -257,7 +257,7 @@ bool TableFS_PathLookup(TableFS *tablefs,const char *path,
 /*  if (ParentPathLookup(path, key, inode_in_search, lpos)) {
     const char* rpos = strchr(lpos, '\0');
     if (rpos != NULL && rpos-lpos > 1) {
-      BuildMetaKey(lpos+1, rpos-lpos-1, inode_in_search, key);
+      BuildMetaKey_path(lpos+1, rpos-lpos-1, inode_in_search, key);
     }
     return true;
   } else {
@@ -275,7 +275,7 @@ bool TableFS_PathLookup(const char *path,
   if (ParentPathLookup(path, key, inode_in_search, lpos)) {
     const char* rpos = strchr(lpos, '\0');
     if (rpos != NULL && rpos-lpos > 1) {
-      BuildMetaKey(lpos+1, rpos-lpos-1, inode_in_search, key);
+      BuildMetaKey_path(lpos+1, rpos-lpos-1, inode_in_search, key);
       filename = leveldb::Slice(lpos+1, rpos-lpos-1);
     } else {
       filename = leveldb::Slice(lpos, 1);
@@ -443,7 +443,7 @@ void monitor_destroy() {
     Logging_LogMsg(FileSystemState_GetLog(tablefs->state_),"TableFS create root inode.\n");
 //    state_->GetLog()->LogMsg("TableFS create root inode.\n");
     tfs_meta_key_t key;
-    //BuildMetaKey(NULL, 0, ROOT_INODE_ID, key);
+    //BuildMetaKey_path(NULL, 0, ROOT_INODE_ID, key);
     struct stat statbuf;
     lstat(ROOT_INODE_STAT, &statbuf);
    /* tfs_inode_val_t value = InitInodeValue(ROOT_INODE_ID,
@@ -602,7 +602,7 @@ int TableFS_Open(TableFS *tablefs,const char *path, struct fuse_file_info *fi) {
         fh->flags_ = fi->flags;
         fh->fd_ = TableFS_OpenDiskFile(tablefs,iheader, fh->flags_);
         if (fh->fd_ < 0) {
-          InodeCacheRelease(tablefs->inode_cache,handle);
+          InodeCache_Release(tablefs->inode_cache,handle);
           ret = -errno;
         }
     }
@@ -799,12 +799,12 @@ int TableFS_Truncate(TableFS *tablefs,const char *path, off_t new_size) {
 
     if (iheader->has_blob > 0) {
       if (new_size > FileSystemState_GetThreshold(tablefs->state_)) {
-        TruncateDiskFile(iheader->fstat.st_ino, new_size);
+        TableFS_TruncateDiskFile(tablefs,iheader->fstat.st_ino, new_size);
       } else {
 	
         char* buffer;/* = new char[new_size];*/                                 // tan::See for "for loop" me,mory allocation 
         buffer=(char *)malloc(sizeof(new_size));
-        MigrateDiskFileToBuffer(iheader->fstat.st_ino, buffer, new_size);
+        TableFS_MigrateDiskFileToBuffer(tablefs,iheader->fstat.st_ino, buffer, new_size);
         UpdateInlineData(handle->value_, buffer, 0, new_size);
         free(buffer);                                 // tan::See for "for loop" me,mory deallocation
       }
@@ -1152,7 +1152,7 @@ int TableFS_UpdateTimens(TableFS *tablefs,const char *path, const struct timespe
     return TableFS_FSError(tablefs,"No such file or directory\n");
   }
   int ret = 0;
-  InodeMutex_Writelock(tablefs->fstree_lock,&key);
+  InodeMutex_WriteLock(tablefs->fstree_lock,&key);
   InodeCacheHandle* handle = InodeCache_Get(tablefs->inode_cache,key, INODE_WRITE);
   if (handle != NULL) {
     {
