@@ -254,31 +254,10 @@ bool TableFS_PathLookup(TableFS *tablefs,const char *path,
                          tfs_meta_key_t *key) {
   const char* lpos;
   tfs_inode_t inode_in_search;
-/*  if (ParentPathLookup(path, key, inode_in_search, lpos)) {
+  if (TableFS_ParentPathLookup(tablefs,path, key, inode_in_search, lpos)) {
     const char* rpos = strchr(lpos, '\0');
     if (rpos != NULL && rpos-lpos > 1) {
       BuildMetaKey_path(lpos+1, rpos-lpos-1, inode_in_search, key);
-    }
-    return true;
-  } else {
-    errno = ENOENT;
-    return false;
-  }*/
-}
-
-/*
-bool TableFS_PathLookup(const char *path,
-                         tfs_meta_key_t &key,
-                         leveldb::Slice &filename) {
-  const char* lpos;
-  tfs_inode_t inode_in_search;
-  if (ParentPathLookup(path, key, inode_in_search, lpos)) {
-    const char* rpos = strchr(lpos, '\0');
-    if (rpos != NULL && rpos-lpos > 1) {
-      BuildMetaKey_path(lpos+1, rpos-lpos-1, inode_in_search, key);
-      filename = leveldb::Slice(lpos+1, rpos-lpos-1);
-    } else {
-      filename = leveldb::Slice(lpos, 1);
     }
     return true;
   } else {
@@ -286,8 +265,28 @@ bool TableFS_PathLookup(const char *path,
     return false;
   }
 }
-*/
-//#ifdef SUPPORTED
+
+
+bool TableFS_PathLookup_Slice(TableFS *tablefs,const char *path,
+                         tfs_meta_key_t *key,
+                         Slice *filename) {
+  const char* lpos;
+  tfs_inode_t inode_in_search;
+  if (TableFS_ParentPathLookup(tablefs,path, key, inode_in_search, lpos)) {
+    const char* rpos = strchr(lpos, '\0');
+    if (rpos != NULL && rpos-lpos > 1) {
+      BuildMetaKey_path(lpos+1, rpos-lpos-1, inode_in_search, key);
+      Slice_init_size(filename,lpos+1, rpos-lpos-1);
+    } else {
+      Slice_init_size(filename,lpos, 1);
+    }
+    return true;
+  } else {
+    errno = ENOENT;
+    return false;
+  }
+}
+
 
 const int DEFAULT_SYNC_INTERVAL = 5;
 volatile int stop_monitor_thread;
@@ -326,8 +325,8 @@ void do_monitor(LevelDBAdaptor* metadb) {
 
 
 void report_get_count(LevelDBAdaptor* metadb) {
-/*  std::string metric;
-  if (metadb->GetStat("leveldb.get_count_by_num_files", &metric)) {
+/* char *metric;
+  if (LevelDBAdaptor_GetStat(metadb,"leveldb.get_count_by_num_files", &metric)) {
     const int metric_cnt = 20;
     int r[metric_cnt];
     std::stringstream ssmetric(metric);
