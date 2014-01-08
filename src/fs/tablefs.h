@@ -114,15 +114,15 @@ typedef struct TableFS TableFS;
 
  void TableFS_FreeInodeValue(tfs_inode_val_t *ival);    //no need tablfs to pass
 
- /* bool TableFS_ParentPathLookup(TableFS *,const char* path,
+ bool TableFS_ParentPathLookup(TableFS *,const char* path,
                         tfs_meta_key_t *key,
-                        tfs_inode_t &inode_in_search,
-                        const char* &lastdelimiter);
-*//*
+                        tfs_inode_t inode_in_search,
+                        const char* lastdelimiter);
+
   inline bool TableFS_PathLookup_Slice(TableFS *,const char *path,
-                         tfs_meta_key_t &key,
-                         leveldb::Slice &filename);
-*/
+                         tfs_meta_key_t *key,
+                         Slice *filename);
+
   inline bool TableFS_PathLookup(TableFS *,const char *path,
                          tfs_meta_key_t *key);
 
