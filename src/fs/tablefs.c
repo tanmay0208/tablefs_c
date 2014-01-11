@@ -131,7 +131,7 @@ void TableFS_SetState(TableFS *tablefs,FileSystemState* state) {
 int TableFS_FSError(TableFS *tablefs,const char *err_msg) {
   int retv = -errno;
 #ifdef TABLEFS_DEBUG
-  state_->GetLog()->LogMsg(err_msg);
+  Logging_LogMsg(FileSystemState_GetLog(tablefs->state_),err_msg);
 #endif
   return retv;
 }
@@ -202,10 +202,10 @@ char *TableFS_InitInodeValue_char(TableFS *tablefs,const char *old_value,
 } 
 
 
-void TableFS_FreeInodeValue(tfs_inode_val_t *ival) {
-  if (ival->value != NULL) {
+void TableFS_FreeInodeValue(tfs_inode_val_t ival) {
+  if (ival.value != NULL) {
     //delete [] ival.value;
-    ival->value = NULL;
+    ival.value = NULL;
   }
 } 
 
@@ -397,8 +397,8 @@ void report_get_count(LevelDBAdaptor* metadb) {
 }
 */
 
-/*
 void monitor_init(LevelDBAdaptor *mdb) {
+/*
     stop_monitor_thread = 0;
     flag_monitor_thread_finish = 0;
     pthread_mutex_init(&(mtx_monitor), NULL);
@@ -414,8 +414,9 @@ void monitor_init(LevelDBAdaptor *mdb) {
         fprintf(stderr, "pthread_detach() error: %d", ret);
         exit(1);
     }
-}
 */
+}
+
 
 void monitor_destroy() {
 /*  pthread_mutex_lock(&(mtx_monitor));
@@ -440,17 +441,18 @@ void monitor_destroy() {
   tablefs->metadb = FileSystemState_GetMetaDB(tablefs->state_);
   if (FileSystemState_IsEmpty(tablefs->state_)) {
     Logging_LogMsg(FileSystemState_GetLog(tablefs->state_),"TableFS create root inode.\n");
-//    state_->GetLog()->LogMsg("TableFS create root inode.\n");
-    tfs_meta_key_t key;
-    //BuildMetaKey_path(NULL, 0, ROOT_INODE_ID, key);
+    tfs_meta_key_t *key;                                       //pointer kele
+    BuildMetaKey_path(NULL, 0, ROOT_INODE_ID, key);
     struct stat statbuf;
     lstat(ROOT_INODE_STAT, &statbuf);
-   /* tfs_inode_val_t value = InitInodeValue(ROOT_INODE_ID,
-          statbuf.st_mode, statbuf.st_dev, leveldb::Slice("\0"));
-    if (metadb->Put(key.ToSlice(), value.ToSlice()) < 0) {
-      state_->GetLog()->LogMsg("TableFS create root directory failed.\n");
-    }
-    FreeInodeValue(value);*/
+    Slice *temp_flag;
+    Slice_init_str(temp_flag,"\0");
+    tfs_inode_val_t value = TableFS_InitInodeValue(tablefs,ROOT_INODE_ID,
+          statbuf.st_mode, statbuf.st_dev, temp_flag); // Zol marla :: temp_flag timepass 
+    /*if (LevelDBAdaptor_Put(tablefs->metadb,Slice_ToSlice(key), Slice_ToSlice(value)) < 0) {
+      Logging_LogMsg(FileSystemState_GetLog(tablefs->state_),"TableFS create root directory failed.\n");
+    }*/                                                       //ToSlice ::Further implem
+    TableFS_FreeInodeValue(value);
   }
    
   tablefs->inode_cache =(InodeCache*)malloc(sizeof(InodeCache));
@@ -458,7 +460,7 @@ void monitor_destroy() {
   tablefs->dentry_cache =(DentryCache*)malloc(sizeof(DentryCache));
   tfs_DentryCache_constructor(tablefs->dentry_cache,16384);  
   //dentry_cache = new DentryCache(16384);
-  //monitor_init(metadb);
+  monitor_init(tablefs->metadb);
   return tablefs->state_;
 }
 
@@ -471,8 +473,7 @@ void TableFS_Destroy(TableFS *tablefs,void * data) {
   if (tablefs->inode_cache != NULL) {
     free(tablefs->inode_cache);
   }
-    Logging_LogMsg(FileSystemState_GetLog(tablefs->state_),"Clean write back cache.\n");
-  //state_->GetLog()->LogMsg("Clean write back cache.\n");
+  Logging_LogMsg(FileSystemState_GetLog(tablefs->state_),"Clean write back cache.\n");
   FileSystemState_Destroy(tablefs->state_);
   free(tablefs->state_);
 }
@@ -542,26 +543,27 @@ ssize_t TableFS_MigrateDiskFileToBuffer(TableFS *tablefs,tfs_inode_t inode_id,
 }
 
 int TableFS_MigrateToDiskFile(TableFS *tablefs,InodeCacheHandle* handle, int *fd, int flags) {
-     int ret = 0;				//added for compiling
-  /*const tfs_inode_header* iheader = GetInodeHeader(handle->value_);
-  if (fd >= 0) {
-    close(fd);
+     int fd1=*fd;				//added for compiling:: kai ni first address pass kele  
+  const tfs_inode_header* iheader = GetInodeHeader(handle->value_);
+  if (fd1 >= 0) {
+    close(fd1);
   }
-  fd = TableFS_OpenDiskFile(tablefs,iheader, flags);
-  if (fd < 0) {
-    fd = -1;
+  
+  fd1 = TableFS_OpenDiskFile(tablefs,iheader, flags);
+  if (fd1 < 0) {
+    fd1 = -1;
     return -errno;
   }
   int ret = 0;
   if (iheader->fstat.st_size > 0 ) {
     const char* buffer = (const char *) iheader +
                          (TFS_INODE_HEADER_SIZE + iheader->namelen + 1);
-    if (pwrite(fd, buffer, iheader->fstat.st_size, 0) !=
+    if (pwrite(fd1, buffer, iheader->fstat.st_size, 0) !=
         iheader->fstat.st_size) {
       ret = -errno;
     }
     DropInlineData(handle->value_);
-  }*/
+  }
   return ret;
 }
 
