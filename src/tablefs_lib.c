@@ -53,11 +53,13 @@ static char *Combine(const char *par, const char *ch) {
     }
 }
 /*
-static void Chdir(std::vector<StackEntry> &stack, const std::string& dir) {
-    if (dir.compare("..") == 0) {
-        StackEntry ent = stack[stack.size() - 1];
+static void Chdir(vector *stack, const char* dir) {
+  vector_init(stack);
+    if (strcmp(dir,"..") == 0) {
+        //StackEntry ent = stack[vector_size(stack) - 1];
+        StackEntry ent;                                     //added for compiling
         Check(ReleaseDir(ent.dirname.c_str(), &ent.file_info));
-        stack.pop_back();
+        vector_delete(stack,stack->count);
     } else {
         StackEntry ent;
         ent.dirname = Combine(stack.back().dirname, dir);
@@ -67,8 +69,8 @@ static void Chdir(std::vector<StackEntry> &stack, const std::string& dir) {
             printf("Cannot Open The Directory\n");
         }
     }
-}*/
-
+}
+*/
 static int Filler(void *buf, const char *name,
                   const struct stat *stbuf, off_t off) {
     printf("%s\n", name);
@@ -97,16 +99,16 @@ static void Mknode(const char *filename) {
 }
 
 static void Rmdir(const char *dirname) {
-//    printf("%s\n", dirname.c_str());
+//    printf("%s\n", dirname;
     if (RemoveDir(dirname) < 0) {
-//            printf("Failed to remove the directory\n");
+            printf("Failed to remove the directory\n");
     }
 }
 
 static void Stat(const char *path) {
     struct stat statbuf;
     if (GetAttr(path, &statbuf) < 0) {
-//       printf("Failed to stat the path: %s\n", path.c_str());
+      //printf("Failed to stat the path: %s\n", path);
     }
 }
 

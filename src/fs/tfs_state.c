@@ -29,14 +29,11 @@ bool FileSystemState_IsEmpty(FileSystemState *filesystemstate) {
 
 void FileSystemState_constructor(FileSystemState *filesystemstate) {
  filesystemstate->metadb=NULL;
- filesystemstate->max_inode_num=0;      //max_inode_num is object of tfs_inode_t
+ filesystemstate->max_inode_num=0;      
  filesystemstate->threshold_=0;
  filesystemstate->logs=NULL ;
 
 }
-
-/*FileSystemState::~FileSystemState() {
-}*/
 
 int FileSystemState_Setup(FileSystemState *filesystemstate,Properties *prop) {
   char resolved_path[4096];
@@ -55,12 +52,8 @@ int FileSystemState_Setup(FileSystemState *filesystemstate,Properties *prop) {
   }
   filesystemstate->logs=(Logging*)malloc(sizeof(Logging));
   Logging_constructor(filesystemstate->logs,Properties_getProperty_default(prop,"logfile",(char*) ""));
-  //Logging_SetDefault()        seems jhol 2 arguments are same
+  Logging_SetDefault(filesystemstate->logs);        
   Logging_Open(filesystemstate->logs);
-
-  /*logs = new Logging(prop.getProperty("logfile", ""));
-  logs->SetDefault(logs); 		//Logging is class 
-  logs->Open();*/
 
   Properties *prop_ = prop;
   Properties_setProperty(prop_,"leveldb.db", strcat(filesystemstate->metadir_,"/meta"));
@@ -68,7 +61,7 @@ int FileSystemState_Setup(FileSystemState *filesystemstate,Properties *prop) {
 
   filesystemstate->metadb =(LevelDBAdaptor*)malloc(sizeof(LevelDBAdaptor));
   LevelDBAdaptor_constructor(filesystemstate->metadb);
-  //LevelDBAdaptor_SetProperties(filesystemstate->metadb,prop_);      prop_ is pointer & we need struct
+  LevelDBAdaptor_SetProperties(filesystemstate->metadb,prop_);      
   LevelDBAdaptor_SetLogging(filesystemstate->metadb,filesystemstate->logs);					//LevelDB madhe handle karne
   if (LevelDBAdaptor_Init(filesystemstate->metadb) < 0) {
     printf("failed to open metadb %s\n", Properties_getProperty(prop_,"leveldb.db"));
@@ -105,7 +98,7 @@ void FileSystemState_Destroy(FileSystemState *filesystemstate) {
   sprintf(fpath, "%s/root.dat",filesystemstate->datadir_);
   FILE* f = fopen(fpath, "w");
   if (f != NULL) {
-    //fprintf(f, "%u\n", filesystemstate->max_inode_num);   unsigned interger expected
+    fprintf(f, "%u\n",(unsigned int) filesystemstate->max_inode_num);  
     fclose(f);
     Logging_LogMsg(filesystemstate->logs,"fpath: %s\n", fpath);
   } else {
