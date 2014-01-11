@@ -53,7 +53,7 @@ void LevelDBIterator_destructor(LevelDBIterator *leveldbiterator) {
 void LevelDBIterator_constructor(LevelDBIterator *leveldbiterator,leveldb_iterator_t *iter) { 
 	leveldbiterator->iter_=iter;
 } 
-void LevelDBAdaptor_SetProperties(LevelDBAdaptor *leveldbadaptor, Properties p) {
+void LevelDBAdaptor_SetProperties(LevelDBAdaptor *leveldbadaptor, Properties *p) {
     leveldbadaptor->p_ = p;                                          
 }
 void LevelDBAdaptor_SetLogging(LevelDBAdaptor *leveldbadaptor,Logging *logs_) {
@@ -67,16 +67,16 @@ bool LevelDBAdaptor_GetStat(LevelDBAdaptor *leveldbadaptor,char *stat, char** va
 int LevelDBAdaptor_Init(LevelDBAdaptor *leveldbadaptor) {
   assert(leveldbadaptor->db_ == NULL);
   char *db_name;
-  int F_cache_size = Properties_getPropertyInt(&(leveldbadaptor->p_),"leveldb.cache.size", 16<<20);
+  int F_cache_size = Properties_getPropertyInt(leveldbadaptor->p_,"leveldb.cache.size", 16<<20);
   leveldbadaptor->cache_ = (F_cache_size >= 0) ? leveldb_cache_create_lru(F_cache_size) : NULL;
-  db_name = Properties_getProperty_default(&(leveldbadaptor->p_),"leveldb.db",(char*) "/tmp/db");
+  db_name = Properties_getProperty_default(leveldbadaptor->p_,"leveldb.db",(char*) "/tmp/db");
   leveldb_options_t *options;
   options=leveldb_options_create();
-  leveldb_options_set_create_if_missing(options,Properties_getPropertyBool(&(leveldbadaptor->p_),"leveldb.create.if.missing.db", true));
+  leveldb_options_set_create_if_missing(options,Properties_getPropertyBool(leveldbadaptor->p_,"leveldb.create.if.missing.db", true));
   leveldb_options_set_cache(options,leveldbadaptor->cache_);
-  leveldb_options_set_block_size(options,Properties_getPropertyInt(&(leveldbadaptor->p_),"leveldb.block.size", 4 << 10));
-  leveldb_options_set_write_buffer_size(options,Properties_getPropertyInt(&(leveldbadaptor->p_),"leveldb.write.buffer.size", 16<<20));
-  leveldb_options_set_max_open_files(options,Properties_getPropertyInt(&(leveldbadaptor->p_),"leveldb.max.open.files", 800));
+  leveldb_options_set_block_size(options,Properties_getPropertyInt(leveldbadaptor->p_,"leveldb.block.size", 4 << 10));
+  leveldb_options_set_write_buffer_size(options,Properties_getPropertyInt(leveldbadaptor->p_,"leveldb.write.buffer.size", 16<<20));
+  leveldb_options_set_max_open_files(options,Properties_getPropertyInt(leveldbadaptor->p_,"leveldb.max.open.files", 800));
   leveldb_options_set_filter_policy(options, leveldb_filterpolicy_create_bloom(12));
 
   if (leveldbadaptor->logs != NULL) {
@@ -84,10 +84,10 @@ int LevelDBAdaptor_Init(LevelDBAdaptor *leveldbadaptor) {
     Logging_LogMsg(leveldbadaptor->logs,"limit level0: %d\n", options->rep.limit_level_zero);
     Logging_LogMsg(leveldbadaptor->logs,"factor level files: %lf\n", options->rep->factor_level_files);*/
   }
-  leveldbadaptor->writeahead = Properties_getPropertyInt(&(leveldbadaptor->p_),"leveldb.writeahead", true);
-  leveldbadaptor->logon = Properties_getPropertyInt(&(leveldbadaptor->p_),"leveldb.logon", false);
-  leveldbadaptor->sync_time_limit = Properties_getPropertyInt(&(leveldbadaptor->p_),"leveldb.sync.time.limit", 5);
-  leveldbadaptor->sync_size_limit = Properties_getPropertyInt(&(leveldbadaptor->p_),"leveldb.sync.size.limit", -1);
+  leveldbadaptor->writeahead = Properties_getPropertyInt(leveldbadaptor->p_,"leveldb.writeahead", true);
+  leveldbadaptor->logon = Properties_getPropertyInt(leveldbadaptor->p_,"leveldb.logon", false);
+  leveldbadaptor->sync_time_limit = Properties_getPropertyInt(leveldbadaptor->p_,"leveldb.sync.time.limit", 5);
+  leveldbadaptor->sync_size_limit = Properties_getPropertyInt(leveldbadaptor->p_,"leveldb.sync.size.limit", -1);
   leveldbadaptor->last_sync_time = time(NULL);
   leveldbadaptor->async_data_size = 0;
   //Status *s = leveldb_open(options, db_name, &leveldbadaptor->db_);		//handle status first

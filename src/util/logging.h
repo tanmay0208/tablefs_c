@@ -41,7 +41,7 @@ typedef struct Logging Logging;
 
   static Logging* Logging_Default();
 
-  void Logging_SetDefault(Logging *,Logging* log);
+  void Logging_SetDefault(Logging* log);
 
 //private:
 //  std::string logging_filename;

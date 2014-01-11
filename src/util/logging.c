@@ -68,7 +68,7 @@ Logging* Logging_Default() {
   return log_;
 }
 
-void Logging_SetDefault(Logging *logging,Logging* log) {
+void Logging_SetDefault(Logging* log) {
   log_ = log;
 }
 

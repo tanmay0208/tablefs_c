@@ -19,6 +19,7 @@
 #include "leveldb/write_batch.h"
 
 //namespace tablefs {
+//char** errptr;          //Ashay ::added for leveldb_put as sixth argument
 
 struct LevelDBIterator {
 	leveldb_iterator_t *iter_;
@@ -31,7 +32,7 @@ struct LevelDBAdaptor {
   leveldb_t *db_;
   leveldb_cache_t *cache_;
   Logging* logs;
-  Properties p_;
+  Properties *p_;
   bool logon;
   bool writeahead;
   time_t last_sync_time;
@@ -46,7 +47,7 @@ typedef struct LevelDBAdaptor LevelDBAdaptor;
 
   void LevelDBAdaptor_destructor(LevelDBAdaptor *);
 
-  void LevelDBAdaptor_SetProperties(LevelDBAdaptor *leveldbadaptor,Properties p);
+  void LevelDBAdaptor_SetProperties(LevelDBAdaptor *leveldbadaptor,Properties *p);
 
   void LevelDBAdaptor_SetLogging(LevelDBAdaptor *leveldbadaptor,Logging *logs_);
 
