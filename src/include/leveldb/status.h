@@ -13,7 +13,7 @@
 #ifndef STORAGE_LEVELDB_INCLUDE_STATUS_H_
 #define STORAGE_LEVELDB_INCLUDE_STATUS_H_
 
-#include <string>
+#include <string.h>
 #include "leveldb/slice.h"
 
 //namespace leveldb {
@@ -21,7 +21,7 @@
 //class Status {
 // public:
 
-  enum Code {
+enum Code {
     kOk = 0,
     kNotFound = 1,
     kCorruption = 2,
@@ -29,7 +29,9 @@
     kInvalidArgument = 4,
     kIOError = 5,
     kNotFoundByFilter = 6
-  };    
+  }; 
+
+typedef enum Code Code;
 
 struct Status
 {

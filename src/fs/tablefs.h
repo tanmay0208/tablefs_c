@@ -112,7 +112,7 @@ typedef struct TableFS TableFS;
   char* TableFS_InitInodeValue_char(TableFS *,const char *old_value,
                              Slice *filename);                            //_char added 
 
- void TableFS_FreeInodeValue(tfs_inode_val_t *ival);    //no need tablfs to pass
+ void TableFS_FreeInodeValue(tfs_inode_val_t ival);    //no need tablfs to pass , pointer kadhla ahe ival cha
 
  bool TableFS_ParentPathLookup(TableFS *,const char* path,
                         tfs_meta_key_t *key,

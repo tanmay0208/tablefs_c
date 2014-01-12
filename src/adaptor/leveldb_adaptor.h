@@ -13,10 +13,10 @@
 #include "util/properties.h"
 #include "util/logging.h"
 #include "leveldb/c.h"
-#include "leveldb/db.h"
+//#include "leveldb/db.h"
 #include "leveldb/slice.h"
-#include "leveldb/iterator.h"
-#include "leveldb/write_batch.h"
+//#include "leveldb/iterator.h"
+//#include "leveldb/write_batch.h"
 
 //namespace tablefs {
 //char** errptr;          //Ashay ::added for leveldb_put as sixth argument
@@ -55,11 +55,11 @@ typedef struct LevelDBAdaptor LevelDBAdaptor;
 
   void LevelDBAdaptor_Cleanup(LevelDBAdaptor *);
 
-  int LevelDBAdaptor_Get(LevelDBAdaptor *,Slice *key,
-          Slice *result);
+  int LevelDBAdaptor_Get(LevelDBAdaptor *,Slice *,
+          char *);
 
-  int LevelDBAdaptor_Put(LevelDBAdaptor *,Slice *key,
-          char *values);
+  int LevelDBAdaptor_Put(LevelDBAdaptor *,Slice *,
+          Slice *);
   
   int LevelDBAdaptor_Sync(LevelDBAdaptor *);
 

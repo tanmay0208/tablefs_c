@@ -25,6 +25,7 @@
 #include "util/mutexlock.h"
 #include "util/socket.h"
 //#include "leveldb/env.h"
+#include "leveldb/slice.h"
 //#include "leveldb/db.h"
 //#include "leveldb/cache.h"
 //#include "leveldb/write_batch.h"

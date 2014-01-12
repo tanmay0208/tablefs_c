@@ -104,6 +104,15 @@ extern char* leveldb_get(
     size_t* vallen,
     char** errptr);
 
+#ifdef MACRO_LEVELDB
+#define db_create_iterator(arg1,arg2) leveldb_create_iterator(arg1,arg2)
+#elif defined(MACRO_ACCUNU)
+#define db_create_iterator(arg1,arg2) accunudb_create_iterator(arg1,arg2)
+#else
+#define db_create_iterator(arg1,arg2)
+#endif
+
+
 extern leveldb_iterator_t* leveldb_create_iterator(
     leveldb_t* db,
     const leveldb_readoptions_t* options);
@@ -148,10 +157,65 @@ extern void leveldb_repair_db(
 /* Iterator */
 
 extern void leveldb_iter_destroy(leveldb_iterator_t*);
-extern unsigned char leveldb_iter_valid(const leveldb_iterator_t*);
-extern void leveldb_iter_seek_to_first(leveldb_iterator_t*);
-extern void leveldb_iter_seek_to_last(leveldb_iterator_t*);
-extern void leveldb_iter_seek(leveldb_iterator_t*, const char* k, size_t klen);
+
+#ifdef MACRO_LEVELDB
+#define db_iter_valid(arg) leveldb_iter_valid(arg)
+#elif defined(MACRO_ACCUNU)
+#define db_iter_valid(arg) accunu_iter_valid(arg)
+#else
+#define db_iter_valid(arg)
+#endif
+
+
+#ifdef MACRO_LEVELDB
+#define db_iter_seek_to_first(arg) leveldb_iter_seek_to_first(arg)
+#elif defined(MACRO_ACCUNU)
+#define db_iter_seek_to_first(arg) accunu_iter_seek_to_first(arg)
+#else
+#define db_iter_seek_to_first(arg)
+#endif
+
+
+#ifdef MACRO_LEVELDB
+#define db_iter_seek_to_last(arg) leveldb_seek_to_last(arg)
+#elif defined(MACRO_ACCUNU)
+#define db_iter_seek_to_last(arg) accunu_iter_seek_to_last(arg)
+#else
+#define db_iter_seek_to_last(arg)
+#endif
+
+//extern unsigned char leveldb_iter_valid(const leveldb_iterator_t*);
+//extern void leveldb_iter_seek_to_first(leveldb_iterator_t*);
+//extern void leveldb_iter_seek_to_last(leveldb_iterator_t*);
+
+
+#ifdef MACRO_LEVELDB
+#define db_iter_seek(arg1, arg2, arg3) leveldb_iter_seek(arg1, arg2, arg3)
+#elif defined(MACRO_ACCUNU)
+#define db_iter_seek(arg1, arg2, arg3) accunu_iter_seek(arg1, arg2, arg3)
+#else
+#define db_iter_seek(arg1, arg2, arg3)
+#endif
+
+//extern void leveldb_iter_seek(leveldb_iterator_t*, const char* k, size_t klen);
+
+#ifdef MACRO_LEVELDB
+#define db_iter_next(arg1) leveldb_iter_next(arg1)
+#elif defined(MACRO_ACCUNU)
+#define db_iter_next(arg1) accunu_iter_next(arg1)
+#else
+#define db_iter_next(arg1)
+#endif
+
+#ifdef MACRO_LEVELDB
+#define db_iter_prev(arg1) leveldb_iter_prev(arg1)
+#elif defined(MACRO_ACCUNU)
+#define db_iter_prev(arg1) accunu_iter_prev(arg1)
+#else
+#define db_iter_prev(arg1)
+#endif
+
+
 extern void leveldb_iter_next(leveldb_iterator_t*);
 extern void leveldb_iter_prev(leveldb_iterator_t*);
 extern const char* leveldb_iter_key(const leveldb_iterator_t*, size_t* klen);
@@ -178,26 +242,87 @@ extern void leveldb_writebatch_iterate(
 
 /* Options */
 
-extern leveldb_options_t* leveldb_options_create();
+
+#ifdef MACRO_LEVELDB
+#define db_options_create() leveldb_options_create()
+#elif defined(MACRO_ACCUNU)
+#define db_options_create() accunudb_options_create()
+#else
+#define db_options_create()
+#endif
+
+
+#ifdef MACRO_LEVELDB
+#define db_options_set_create_if_missing(arg1,arg2) leveldb_options_set_create_if_missing(arg1,arg2)
+#elif defined(MACRO_ACCUNU)
+#define db_options_set_create_if_missing(arg1,arg2) accunudb_options_set_create_if_missing(arg1,arg2)
+#else
+#define db_options_set_create_if_missing(arg1,arg2)
+#endif
+
+#ifdef MACRO_LEVELDB
+#define db_options_set_filter_policy(arg1,arg2) leveldb_options_set_filter_policy(arg1,arg2)
+#elif defined(MACRO_ACCUNU)
+#define db_options_set_filter_policy(arg1,arg2) accunudb_options_set_filter_policy(arg1,arg2)
+#else
+#define db_options_set_filter_policy(arg1,arg2)
+#endif
+
+#ifdef MACRO_LEVELDB
+#define db_options_set_cache(arg1,arg2) leveldb_options_set_cache(arg1,arg2)
+#elif defined(MACRO_ACCUNU)
+#define db_options_set_cache(arg1,arg2) accunudb_options_set_cache(arg1,arg2)
+#else
+#define db_options_set_cache(arg1,arg2)
+#endif
+
+#ifdef MACRO_LEVELDB
+#define db_options_set_max_open_files(arg1,arg2) leveldb_options_set_max_open_files(arg1,arg2)
+#elif defined(MACRO_ACCUNU)
+#define db_options_set_max_open_files(arg1,arg2) accunudb_options_set_max_open_files(arg1,arg2)
+#else
+#define db_options_set_max_open_files(arg1,arg2)
+#endif
+
+#ifdef MACRO_LEVELDB
+#define db_options_set_block_size(arg1,arg2) leveldb_options_set_block_size(arg1,arg2)
+#elif defined(MACRO_ACCUNU)
+#define db_options_set_block_size(arg1,arg2) accunudb_options_set_block_size(arg1,arg2)
+#else
+#define db_options_set_block_size(arg1,arg2)
+#endif
+
+
+#ifdef MACRO_LEVELDB
+#define db_options_set_write_buffer_size(arg1,arg2) leveldb_options_set_write_buffer_size(arg1,arg2)
+#elif defined(MACRO_ACCUNU)
+#define db_options_set_write_buffer_size(arg1,arg2) accunudb_options_set_write_buffer_size(arg1,arg2)
+#else
+#define db_options_set_write_buffer_size(arg1,arg2)
+#endif
+
+//extern leveldb_options_t* leveldb_options_create();
 extern void leveldb_options_destroy(leveldb_options_t*);
 extern void leveldb_options_set_comparator(
     leveldb_options_t*,
     leveldb_comparator_t*);
-extern void leveldb_options_set_filter_policy(
-    leveldb_options_t*,
-    leveldb_filterpolicy_t*);
-extern void leveldb_options_set_create_if_missing(
-    leveldb_options_t*, unsigned char);
+/*extern void leveldb_options_set_filter_policy(
+ *  leveldb_options_t*,
+ *   leveldb_filterpolicy_t*);
+ */
+
+/*extern void leveldb_options_set_create_if_missing(
+    leveldb_options_t*, unsigned char);*/
 extern void leveldb_options_set_error_if_exists(
     leveldb_options_t*, unsigned char);
 extern void leveldb_options_set_paranoid_checks(
     leveldb_options_t*, unsigned char);
 extern void leveldb_options_set_env(leveldb_options_t*, leveldb_env_t*);
 extern void leveldb_options_set_info_log(leveldb_options_t*, leveldb_logger_t*);
-extern void leveldb_options_set_write_buffer_size(leveldb_options_t*, size_t);
-extern void leveldb_options_set_max_open_files(leveldb_options_t*, int);
-extern void leveldb_options_set_cache(leveldb_options_t*, leveldb_cache_t*);
-extern void leveldb_options_set_block_size(leveldb_options_t*, size_t);
+//extern void leveldb_options_set_write_buffer_size(leveldb_options_t*, size_t);
+//extern void leveldb_options_set_max_open_files(leveldb_options_t*, int);
+//extern void leveldb_options_set_cache(leveldb_options_t*, leveldb_cache_t*);
+//extern void leveldb_options_set_block_size(leveldb_options_t*, size_t);
 extern void leveldb_options_set_block_restart_interval(leveldb_options_t*, int);
 
 enum {
@@ -255,10 +380,33 @@ extern void leveldb_readoptions_set_snapshot(
 
 extern leveldb_writeoptions_t* leveldb_writeoptions_create();
 extern void leveldb_writeoptions_destroy(leveldb_writeoptions_t*);
-extern void leveldb_writeoptions_set_sync(
-    leveldb_writeoptions_t*, unsigned char);
+
+
+#ifdef MACRO_LEVELDB
+#define db_writeoptions_set_sync(arg1, arg2) leveldb_writeoptions_set_sync(arg1, arg2)
+#elif defined(MACRO_ACCUNU)
+#define db_writeoptions_set_sync(arg1, arg2) accunudb_writeoptions_set_sync(arg1, arg2)
+#else
+#define db_writeoptions_set_sync(arg1, arg2)
+#endif
+
+
+
+/*extern void leveldb_writeoptions_set_sync(
+*  leveldb_writeoptions_t*, unsigned char);
+*/
 
 /* Cache */
+
+#ifdef MACRO_LEVELDB
+#define db_cache_create_lru(arg1) leveldb_cache_create_lru(arg1)
+#elif defined(MACRO_ACCUNU)
+#define db_cache_create_lru(arg1) accunudb_cache_create_lru(arg1)
+#else
+#define db_cache_create_lru(arg1)
+#endif
+
+
 
 extern leveldb_cache_t* leveldb_cache_create_lru(size_t capacity);
 extern void leveldb_cache_destroy(leveldb_cache_t* cache);

@@ -1,5 +1,5 @@
-C = gcc
-CC = g++
+CC = gcc
+C = g++
 
 #-----------------------------------------------
 # Uncomment exactly one of the lines labelled (A), (B), and (C) below
@@ -25,12 +25,11 @@ endif
 
 DEBUGFLAGS = 
 
-CFLAGS = -c -I. -I./include $(DEBUGFLAGS) $(PORT_CFLAGS) $(OPT) $(SNAPPY_CFLAGS)
+CFLAGS = -c -I. -I./include $(DEBUGFLAGS) $(PORT_CFLAGS) $(OPT) $(SNAPPY_CFLAGS) -D_FILE_OFFSET_BITS=64
 #$(PLATFORM_CFLAGS)
 LDFLAGS=$(PLATFORM_LDFLAGS) $(SNAPPY_LDFLAGS) $(GOOGLE_PERFTOOLS_LDFLAGS)
 
-FLAG=-D_FILE_OFFSET_BITS=64
-FUSEFLAGS=`pkg-config fuse --cflags` $(FLAG)
+FUSEFLAGS=`pkg-config fuse --cflags`
 
 FSLIBOJECTS=`pkg-config fuse --libs`
 
@@ -72,7 +71,8 @@ dbbench: ./dbbench.o $(LIBOBJECTS)
 	$(CC) $(LDFLAGS) $(FUSEFLAGS) dbbench.o $(LIBOBJECTS) $(FSLIBOJECTS) $(LIBRARY) -o $@
 
 tablefs: ./tablefs_main.o $(LIBOBJECTS)
-	$(CC) $(LDFLAGS) $(FUSEFLAGS) tablefs_main.o $(LIBOBJECTS) $(FSLIBOJECTS) $(LIBRARY) -o $@
+	#$(CC) $(LDFLAGS) $(FUSEFLAGS) tablefs_main.o $(LIBOBJECTS) $(FSLIBOJECTS) $(LIBRARY) -o $@
+	$(CC) $(LDFLAGS) $(FUSEFLAGS) tablefs_main.o $(LIBOBJECTS) $(FSLIBOJECTS) -o $@	
 
 tablefs_lib: ./tablefs_lib.o $(LIBOBJECTS)
 	$(CC) $(LDFLAGS) $(FUSEFLAGS) tablefs_lib.o $(LIBOBJECTS) $(FSLIBOJECTS) $(LIBRARY) -o $@
