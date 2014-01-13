@@ -160,60 +160,33 @@ extern void leveldb_iter_destroy(leveldb_iterator_t*);
 
 #ifdef MACRO_LEVELDB
 #define db_iter_valid(arg) leveldb_iter_valid(arg)
+#define db_iter_seek_to_first(arg) leveldb_iter_seek_to_first(arg)
+#define db_iter_seek_to_last(arg) leveldb_seek_to_last(arg)
+#define db_iter_seek(arg1, arg2, arg3) leveldb_iter_seek(arg1, arg2, arg3)
+#define db_iter_next(arg1) leveldb_iter_next(arg1)
+#define db_iter_prev(arg1) leveldb_iter_next(arg1)
 #elif defined(MACRO_ACCUNU)
 #define db_iter_valid(arg) accunu_iter_valid(arg)
+#define db_iter_seek_to_first(arg) accunu_iter_seek_to_first(arg)
+#define db_iter_seek_to_last(arg) accunu_iter_seek_to_last(arg)
+#define db_iter_seek(arg1, arg2, arg3) accunu_iter_seek(arg1, arg2, arg3)
+#define db_iter_next(arg1) accunu_iter_next(arg1)
+#define db_iter_prev(arg1) accunu_iter_next(arg1)
 #else
 #define db_iter_valid(arg)
-#endif
-
-
-#ifdef MACRO_LEVELDB
-#define db_iter_seek_to_first(arg) leveldb_iter_seek_to_first(arg)
-#elif defined(MACRO_ACCUNU)
-#define db_iter_seek_to_first(arg) accunu_iter_seek_to_first(arg)
-#else
 #define db_iter_seek_to_first(arg)
-#endif
-
-
-#ifdef MACRO_LEVELDB
-#define db_iter_seek_to_last(arg) leveldb_seek_to_last(arg)
-#elif defined(MACRO_ACCUNU)
-#define db_iter_seek_to_last(arg) accunu_iter_seek_to_last(arg)
-#else
 #define db_iter_seek_to_last(arg)
+#define db_iter_seek(arg1, arg2, arg3)
+#define db_iter_next(arg1)
+#define db_iter_prev(arg1)
 #endif
+
+
 
 //extern unsigned char leveldb_iter_valid(const leveldb_iterator_t*);
 //extern void leveldb_iter_seek_to_first(leveldb_iterator_t*);
 //extern void leveldb_iter_seek_to_last(leveldb_iterator_t*);
-
-
-#ifdef MACRO_LEVELDB
-#define db_iter_seek(arg1, arg2, arg3) leveldb_iter_seek(arg1, arg2, arg3)
-#elif defined(MACRO_ACCUNU)
-#define db_iter_seek(arg1, arg2, arg3) accunu_iter_seek(arg1, arg2, arg3)
-#else
-#define db_iter_seek(arg1, arg2, arg3)
-#endif
-
 //extern void leveldb_iter_seek(leveldb_iterator_t*, const char* k, size_t klen);
-
-#ifdef MACRO_LEVELDB
-#define db_iter_next(arg1) leveldb_iter_next(arg1)
-#elif defined(MACRO_ACCUNU)
-#define db_iter_next(arg1) accunu_iter_next(arg1)
-#else
-#define db_iter_next(arg1)
-#endif
-
-#ifdef MACRO_LEVELDB
-#define db_iter_prev(arg1) leveldb_iter_prev(arg1)
-#elif defined(MACRO_ACCUNU)
-#define db_iter_prev(arg1) accunu_iter_prev(arg1)
-#else
-#define db_iter_prev(arg1)
-#endif
 
 
 extern void leveldb_iter_next(leveldb_iterator_t*);
@@ -245,61 +218,31 @@ extern void leveldb_writebatch_iterate(
 
 #ifdef MACRO_LEVELDB
 #define db_options_create() leveldb_options_create()
+#define db_options_set_create_if_missing(arg1,arg2) leveldb_options_set_create_if_missing(arg1,arg2)
+#define db_options_set_filter_policy(arg1,arg2) leveldb_options_set_filter_policy(arg1,arg2)
+#define db_options_set_cache(arg1,arg2) leveldb_options_set_cache(arg1,arg2)
+#define db_options_set_max_open_files(arg1,arg2) leveldb_options_set_max_open_files(arg1,arg2)
+#define db_options_set_block_size(arg1,arg2) leveldb_options_set_block_size(arg1,arg2)
+#define db_options_set_write_buffer_size(arg1,arg2) leveldb_options_set_write_buffer_size(arg1,arg2)
 #elif defined(MACRO_ACCUNU)
 #define db_options_create() accunudb_options_create()
+#define db_options_set_create_if_missing(arg1,arg2) accunudb_options_set_create_if_missing(arg1,arg2)
+#define db_options_set_filter_policy(arg1,arg2) accunudb_options_set_filter_policy(arg1,arg2)
+#define db_options_set_cache(arg1,arg2) accunudb_options_set_cache(arg1,arg2)
+#define db_options_set_write_buffer_size(arg1,arg2) accunudb_options_set_write_buffer_size(arg1,arg2)
+#define db_options_set_max_open_files(arg1,arg2) accunudb_options_set_max_open_files(arg1,arg2)
+#define db_options_set_write_buffer_size(arg1,arg2) accunudb_options_set_write_buffer_size(arg1,arg2)
+#define db_options_set_block_size(arg1,arg2) accunudb_options_set_block_size(arg1,arg2)
 #else
 #define db_options_create()
-#endif
-
-
-#ifdef MACRO_LEVELDB
-#define db_options_set_create_if_missing(arg1,arg2) leveldb_options_set_create_if_missing(arg1,arg2)
-#elif defined(MACRO_ACCUNU)
-#define db_options_set_create_if_missing(arg1,arg2) accunudb_options_set_create_if_missing(arg1,arg2)
-#else
+#define db_options_set_write_buffer_size(arg1,arg2)
+#define db_options_set_block_size(arg1,arg2)
+#define db_options_set_max_open_files(arg1,arg2)
+#define db_options_set_cache(arg1,arg2)
+#define db_options_set_filter_policy(arg1,arg2)
 #define db_options_set_create_if_missing(arg1,arg2)
 #endif
 
-#ifdef MACRO_LEVELDB
-#define db_options_set_filter_policy(arg1,arg2) leveldb_options_set_filter_policy(arg1,arg2)
-#elif defined(MACRO_ACCUNU)
-#define db_options_set_filter_policy(arg1,arg2) accunudb_options_set_filter_policy(arg1,arg2)
-#else
-#define db_options_set_filter_policy(arg1,arg2)
-#endif
-
-#ifdef MACRO_LEVELDB
-#define db_options_set_cache(arg1,arg2) leveldb_options_set_cache(arg1,arg2)
-#elif defined(MACRO_ACCUNU)
-#define db_options_set_cache(arg1,arg2) accunudb_options_set_cache(arg1,arg2)
-#else
-#define db_options_set_cache(arg1,arg2)
-#endif
-
-#ifdef MACRO_LEVELDB
-#define db_options_set_max_open_files(arg1,arg2) leveldb_options_set_max_open_files(arg1,arg2)
-#elif defined(MACRO_ACCUNU)
-#define db_options_set_max_open_files(arg1,arg2) accunudb_options_set_max_open_files(arg1,arg2)
-#else
-#define db_options_set_max_open_files(arg1,arg2)
-#endif
-
-#ifdef MACRO_LEVELDB
-#define db_options_set_block_size(arg1,arg2) leveldb_options_set_block_size(arg1,arg2)
-#elif defined(MACRO_ACCUNU)
-#define db_options_set_block_size(arg1,arg2) accunudb_options_set_block_size(arg1,arg2)
-#else
-#define db_options_set_block_size(arg1,arg2)
-#endif
-
-
-#ifdef MACRO_LEVELDB
-#define db_options_set_write_buffer_size(arg1,arg2) leveldb_options_set_write_buffer_size(arg1,arg2)
-#elif defined(MACRO_ACCUNU)
-#define db_options_set_write_buffer_size(arg1,arg2) accunudb_options_set_write_buffer_size(arg1,arg2)
-#else
-#define db_options_set_write_buffer_size(arg1,arg2)
-#endif
 
 //extern leveldb_options_t* leveldb_options_create();
 extern void leveldb_options_destroy(leveldb_options_t*);
