@@ -224,11 +224,11 @@ void LevelDBAdaptor_Report(LevelDBAdaptor *leveldbadaptor) {
   leveldbadaptor->db_->GetProperty(leveldb::Slice("leveldb.stats"), &result);
   leveldbadaptor->logs->LogMsg("\n%s\n", result.c_str());
 }
-
+*/
 void LevelDBAdaptor_Compact(LevelDBAdaptor *leveldbadaptor) {
-  leveldbadaptor->db_->CompactRange(NULL, NULL);
+ // leveldbadaptor->db_->CompactRange(NULL, NULL);
 }
-
+/*
 bool LevelDBAdaptor_GetMetric(LevelDBAdaptor *leveldbadaptor,std::string* value) {
   return leveldbadaptor->db_->GetProperty(Slice("leveldb.stats"), value);
 }

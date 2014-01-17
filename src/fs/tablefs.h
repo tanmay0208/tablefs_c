@@ -107,10 +107,10 @@ typedef struct TableFS TableFS;
   tfs_inode_val_t TableFS_InitInodeValue(TableFS *,tfs_inode_t inum,
                                  mode_t mode,
                                  dev_t dev,
-                                 Slice *filename);
+                                 Slice filename);
 
   char* TableFS_InitInodeValue_char(TableFS *,const char *old_value,
-                             Slice *filename);                            //_char added 
+                             Slice filename);                            //_char added 
 
  void TableFS_FreeInodeValue(tfs_inode_val_t ival);    //no need tablfs to pass , pointer kadhla ahe ival cha
 
