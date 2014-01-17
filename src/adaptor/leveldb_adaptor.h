@@ -28,7 +28,7 @@ typedef struct LevelDBIterator LevelDBIterator;
 
 
 struct LevelDBAdaptor {
-  char* db_name;
+  char *db_name;
   leveldb_t *db_;
   leveldb_cache_t *cache_;
   Logging* logs;

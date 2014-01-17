@@ -44,7 +44,7 @@ int wrap_rename(const char *path, const char *newpath) {
 }
 /*
 int wrap_link(const char *path, const char *newpath) {
-  return TableFS_Link(fs,path, newpath);
+  return TableFS_Link(fs,path, newpath);	//Kair commented
 }
 */
 int wrap_chmod(const char *path, mode_t mode) {
@@ -69,7 +69,7 @@ int wrap_release(const char *path, struct fuse_file_info *fileInfo) {
   return TableFS_Release(fs,path, fileInfo);
 }
 /*
-int wrap_fsync(const char *path, int datasync, struct fuse_file_info *fi) {
+int wrap_fsync(const char *path, int datasync, struct fuse_file_info *fi) { //Kair commented
   return TableFS_Fsync(fs,path, datasync, fi);
 }
 */
@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
   char *datadir = Properties_getProperty(prop,"datadir");
   char *metadir = Properties_getProperty(prop,"metadir");
 /*
-  //leveldb::Env* env = leveldb::Env::Default(); //Kair commented
+  //leveldb::Env* env = leveldb::Env::Default(); 
   if (!env->FileExists(mountdir) || !env->FileExists(datadir) || !env->FileExists(metadir)) {
       fprintf(stdout, "Some input directories cannot be found.\n");
   }
@@ -132,7 +132,6 @@ int main(int argc, char *argv[])
 
   fs =(TableFS *)malloc(sizeof(TableFS));
   TableFS_SetState(fs,tablefs_data);
- //#ifdef SUPPORTED
   tablefs_operations.init       = wrap_init;
   tablefs_operations.getattr    = wrap_getattr;
   tablefs_operations.opendir    = wrap_opendir;
@@ -164,7 +163,6 @@ int main(int argc, char *argv[])
   fuse_stat = fuse_main(fuse_argc, fuse_argv, &tablefs_operations, tablefs_data);
 
   return fuse_stat;
-//  #endif
   return 1;
 }
 

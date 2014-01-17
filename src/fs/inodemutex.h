@@ -50,11 +50,11 @@ typedef struct InodeMutex InodeMutex;
  * ~InodeMutex() {}
  */
 
-  void InodeMutex_ReadLock(InodeMutex *,const tfs_meta_key_t *);
+  void InodeMutex_ReadLock(InodeMutex *,const tfs_meta_key_t );
 
-  void InodeMutex_WriteLock(InodeMutex *,const tfs_meta_key_t *);
+  void InodeMutex_WriteLock(InodeMutex *,const tfs_meta_key_t );
 
-  void InodeMutex_Unlock(InodeMutex *,const tfs_meta_key_t *);
+  void InodeMutex_Unlock(InodeMutex *,const tfs_meta_key_t );
 
 //}
 

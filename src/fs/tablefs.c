@@ -46,15 +46,15 @@ void tfs_file_handle_t_constructor(tfs_file_handle_t *tfs_file_handle) {				//St
 
 inline static void BuildMetaKey(const tfs_inode_t inode_id,
                                 const tfs_hash_t hash_id,
-                                tfs_meta_key_t *key) {
-  key->inode_id = inode_id;
-  key->hash_id = hash_id;
+                                tfs_meta_key_t key) {
+  key.inode_id = inode_id;
+  key.hash_id = hash_id;
 }
 
 inline static void BuildMetaKey_path(const char *path,
                                 const int len,
                                 const tfs_inode_t inode_id,
-                                tfs_meta_key_t *key) {
+                                tfs_meta_key_t key) {
   BuildMetaKey(inode_id, murmur64(path, len, 123), key);
 }
 
@@ -90,7 +90,7 @@ size_t GetInlineData(char *value, char* buf, size_t offset, size_t size) {
 void UpdateIhandleValue(char *value,
                         const char* buf, size_t offset, size_t size) {
   if (offset > strlen(value)) {
-    //value.resize(offset);				resize handle
+    value=(char *)realloc(value,sizeof(char)*offset);        //value.resize(offset);				
   }
   //value.replace(offset, size, buf, size);			replace handle
 }
@@ -116,13 +116,13 @@ void UpdateInlineData(char *value,
 void TruncateInlineData(char *value, size_t new_size) {
   const tfs_inode_header* header = GetInodeHeader(value);
   size_t target_size = TFS_INODE_HEADER_SIZE + header->namelen + new_size + 1;
-  //value.resize(target_size);
+  value=(char *)realloc(value,sizeof(char)*target_size);        //value.resize(target_size);
 }
 
 void DropInlineData(char *value) {
   const tfs_inode_header* header = GetInodeHeader(value);
   size_t target_size = TFS_INODE_HEADER_SIZE + header->namelen + 1;
-  //value.resize(target_size);
+  value=(char *)realloc(value,sizeof(char)*target_size);       //value.resize(target_size);
 }
 
 void TableFS_SetState(TableFS *tablefs,FileSystemState* state) {
@@ -173,7 +173,7 @@ tfs_inode_val_t TableFS_InitInodeValue(TableFS *tablefs,tfs_inode_t inum,
                                         Slice *filename) {
   tfs_inode_val_t ival;
   ival.size = TFS_INODE_HEADER_SIZE + Slice_size(filename) + 1;
-  //ival.value = new char[ival.size];
+                                                                      //ival.value = new char[ival.size];
   ival.value=(char*)malloc(ival.size*sizeof(char));              //Zhol marla
 
   //tfs_inode_header* header = reinterpret_cast<tfs_inode_header*>(ival.value);      //reinterpret_cast
@@ -211,7 +211,7 @@ void TableFS_FreeInodeValue(tfs_inode_val_t ival) {
 } 
 
 bool TableFS_ParentPathLookup(TableFS *tablefs,const char *path,
-                               tfs_meta_key_t *key,
+                               tfs_meta_key_t key,
                                tfs_inode_t inode_in_search,
                                const char* lastdelimiter) {
   const char* lpos=path;
@@ -222,7 +222,7 @@ bool TableFS_ParentPathLookup(TableFS *tablefs,const char *path,
   while ((rpos = strchr(lpos+1, PATH_DELIMITER)) != NULL) {
     if (rpos - lpos > 0) {
       BuildMetaKey_path(lpos+1, rpos-lpos-1, inode_in_search, key);
-      if (!tfs_DentryCache_Find(tablefs->dentry_cache,key, inode_in_search)) {
+      if (!tfs_DentryCache_Find(tablefs->dentry_cache,key, inode_in_search)) {    // & added
         {
           InodeMutex_ReadLock(tablefs->fstree_lock,key);
           char* result;
@@ -252,7 +252,7 @@ bool TableFS_ParentPathLookup(TableFS *tablefs,const char *path,
 }
 
 bool TableFS_PathLookup(TableFS *tablefs,const char *path,
-                         tfs_meta_key_t *key) {
+                         tfs_meta_key_t key) {
   const char* lpos;
   tfs_inode_t inode_in_search;
   if (TableFS_ParentPathLookup(tablefs,path, key, inode_in_search, lpos)) {
@@ -269,7 +269,7 @@ bool TableFS_PathLookup(TableFS *tablefs,const char *path,
 
 
 bool TableFS_PathLookup_Slice(TableFS *tablefs,const char *path,
-                         tfs_meta_key_t *key,
+                         tfs_meta_key_t key,          
                          Slice *filename) {
   const char* lpos;
   tfs_inode_t inode_in_search;
@@ -442,7 +442,7 @@ void monitor_destroy() {
   tablefs->metadb = FileSystemState_GetMetaDB(tablefs->state_);
   if (FileSystemState_IsEmpty(tablefs->state_)) {
     Logging_LogMsg(FileSystemState_GetLog(tablefs->state_),"TableFS create root inode.\n");
-    tfs_meta_key_t *key;                                       //pointer kele
+    tfs_meta_key_t key;                                       //pointer kele
     BuildMetaKey_path(NULL, 0, ROOT_INODE_ID, key);
     struct stat statbuf;
     lstat(ROOT_INODE_STAT, &statbuf);
@@ -460,7 +460,7 @@ void monitor_destroy() {
   InodeCache_constructor(tablefs->inode_cache,tablefs->metadb);
   tablefs->dentry_cache =(DentryCache*)malloc(sizeof(DentryCache));
   tfs_DentryCache_constructor(tablefs->dentry_cache,16384);  
-  //dentry_cache = new DentryCache(16384);
+                                //dentry_cache = new DentryCache(16384);
   monitor_init(tablefs->metadb);
   return tablefs->state_;
 }
@@ -481,11 +481,11 @@ void TableFS_Destroy(TableFS *tablefs,void * data) {
 
 int TableFS_GetAttr(TableFS *tablefs,const char *path, struct stat *statbuf) {
   tfs_meta_key_t key;
-  if (!TableFS_PathLookup(tablefs,path,&key)) {
+  if (!TableFS_PathLookup(tablefs,path,key)) {
      return TableFS_FSError(tablefs,"GetAttr Path Lookup: No such file or directory: %s\n");
   }
   int ret = 0;
-  InodeMutex_ReadLock(tablefs->fstree_lock,&key);
+  InodeMutex_ReadLock(tablefs->fstree_lock,key);
   InodeCacheHandle* handle = InodeCache_Get(tablefs->inode_cache,key, INODE_READ);
   if (handle != NULL) {
 //    *statbuf = *(GetAttribute(handle->value_));		Apan: LevelDB ,InodeCacheHandle,icache madhe ahe
@@ -499,7 +499,7 @@ int TableFS_GetAttr(TableFS *tablefs,const char *path, struct stat *statbuf) {
   } else {
     ret = -ENOENT;
   }
-  InodeMutex_Unlock(tablefs->fstree_lock,&key);
+  InodeMutex_Unlock(tablefs->fstree_lock,key);
   return ret;
 }
 
@@ -579,10 +579,10 @@ int TableFS_Open(TableFS *tablefs,const char *path, struct fuse_file_info *fi) {
 #endif
 
   tfs_meta_key_t key;
-  if (!TableFS_PathLookup(tablefs,path, &key)) {
+  if (!TableFS_PathLookup(tablefs,path, key)) {
     return TableFS_FSError(tablefs,"Open: No such file or directory\n");
   }
-  InodeMutex_WriteLock(tablefs->fstree_lock,&key);
+  InodeMutex_WriteLock(tablefs->fstree_lock,key);
   InodeCacheHandle* handle = NULL;
   if ((fi->flags & O_RDWR) > 0 ||
       (fi->flags & O_WRONLY) > 0 ||
@@ -614,14 +614,14 @@ int TableFS_Open(TableFS *tablefs,const char *path, struct fuse_file_info *fi) {
 #endif
     if (ret == 0) {
       fi->fh = (int)fh;			//Apan: Khali zhol distoy
-      //fi->fh = (uint64_t)fh;
+                          //fi->fh = (uint64_t)fh;
     } else {
       free(fh);
     }
   } else {
     ret = -ENOENT;
   }
-  InodeMutex_Unlock(tablefs->fstree_lock,&key);
+  InodeMutex_Unlock(tablefs->fstree_lock,key);
 
 
   return ret;
@@ -635,7 +635,7 @@ int TableFS_Read(TableFS *tablefs,const char* path, char *buf, size_t size,
   //tfs_file_handle_t* fh = reinterpret_cast<tfs_file_handle_t*>(fi->fh);
   tfs_file_handle_t* fh;				//Apan : Added for compiling ,delete afterwards
   InodeCacheHandle* handle = fh->handle_;
-  InodeMutex_ReadLock(tablefs->fstree_lock,&handle->key_);
+  InodeMutex_ReadLock(tablefs->fstree_lock,handle->key_);
   const tfs_inode_header* iheader = GetInodeHeader(handle->value_);
   int ret;
   if (iheader->has_blob > 0) {
@@ -650,7 +650,7 @@ int TableFS_Read(TableFS *tablefs,const char* path, char *buf, size_t size,
   } else {
     ret = GetInlineData(handle->value_, buf, offset, size);
   }
-  InodeMutex_Unlock(tablefs->fstree_lock,&handle->key_);
+  InodeMutex_Unlock(tablefs->fstree_lock,handle->key_);
   return ret;
 }
 
@@ -664,7 +664,7 @@ int TableFS_Write(TableFS *tablefs,const char* path, const char *buf, size_t siz
   tfs_file_handle_t* fh;				//Apan : Added for compiling ,delete afterwards
   InodeCacheHandle* handle = fh->handle_;
   handle->mode_ = INODE_WRITE;
-  InodeMutex_ReadLock(tablefs->fstree_lock,&handle->key_);
+  InodeMutex_ReadLock(tablefs->fstree_lock,handle->key_);
   const tfs_inode_header* iheader = GetInodeHeader(handle->value_);
   int ret = 0, has_imgrated = 0;
   int has_larger_size = (iheader->fstat.st_size < offset + size) ? 1 : 0;
@@ -714,7 +714,7 @@ int TableFS_Write(TableFS *tablefs,const char* path, const char *buf, size_t siz
   state_->GetLog()->LogMsg("Write: %s, Handle: %x HandleMode: %d\n",
                            path, handle, handle->mode_);
 #endif
-  InodeMutex_Unlock(tablefs->fstree_lock,&handle->key_);
+  InodeMutex_Unlock(tablefs->fstree_lock,handle->key_);
   return ret;
 }
 
@@ -726,7 +726,7 @@ int TableFS_Fsync(TableFS *tablefs,const char *path, int datasync, struct fuse_f
   tfs_file_handle_t* fh;
   //tfs_file_handle_t* fh = reinterpret_cast<tfs_file_handle_t*>(fi->fh); 				//Apan : Added for compiling ,delete afterwards
   InodeCacheHandle* handle = fh->handle_;
-  InodeMutex_WriteLock(tablefs->fstree_lock,&handle->key_);
+  InodeMutex_WriteLock(tablefs->fstree_lock,handle->key_);
 
   const tfs_inode_header* iheader = GetInodeHeader(handle->value_);
   int ret = 0;
@@ -739,7 +739,7 @@ int TableFS_Fsync(TableFS *tablefs,const char *path, int datasync, struct fuse_f
     }
   }
 
-  InodeMutex_Unlock(tablefs->fstree_lock,&handle->key_);
+  InodeMutex_Unlock(tablefs->fstree_lock,handle->key_);
   return -ret;
 }
 
@@ -748,7 +748,7 @@ int TableFS_Release(TableFS *tablefs,const char *path, struct fuse_file_info *fi
   tfs_file_handle_t* fh;  		//Apan : Added for compiling ,delete afterwards
   //tfs_file_handle_t* fh = reinterpret_cast<tfs_file_handle_t*>(fi->fh);
   InodeCacheHandle* handle = fh->handle_;
-  InodeMutex_WriteLock(tablefs->fstree_lock,&handle->key_);
+  InodeMutex_WriteLock(tablefs->fstree_lock,handle->key_);
 
   if (handle->mode_ == INODE_WRITE) {
     const tfs_stat_t *value;              	//Apan : Added for compiling ,delete afterwards
@@ -774,7 +774,7 @@ int TableFS_Release(TableFS *tablefs,const char *path, struct fuse_file_info *fi
   InodeCache_Evict(tablefs->inode_cache,key);
   free(fh);
 
-  InodeMutex_Unlock(tablefs->fstree_lock,&key);
+  InodeMutex_Unlock(tablefs->fstree_lock,key);
   if (ret != 0) {
     return -errno;
   } else {
@@ -788,12 +788,12 @@ int TableFS_Truncate(TableFS *tablefs,const char *path, off_t new_size) {
 #endif
 
   tfs_meta_key_t key;
-  if (!TableFS_PathLookup(tablefs,path, &key)) {
+  if (!TableFS_PathLookup(tablefs,path, key)) {
     return TableFS_FSError(tablefs,"Open: No such file or directory\n");
   }
   InodeCacheHandle* handle =
     InodeCache_Get(tablefs->inode_cache,key, INODE_WRITE);
-  InodeMutex_WriteLock(tablefs->fstree_lock,&key);
+  InodeMutex_WriteLock(tablefs->fstree_lock,key);
 
   int ret = 0;
   if (handle != NULL) {
@@ -805,7 +805,7 @@ int TableFS_Truncate(TableFS *tablefs,const char *path, off_t new_size) {
       } else {
 	
         char* buffer;/* = new char[new_size];*/                                 // tan::See for "for loop" me,mory allocation 
-        buffer=(char *)malloc(sizeof(new_size));
+        buffer=(char *)malloc(new_size*sizeof(char));
         TableFS_MigrateDiskFileToBuffer(tablefs,iheader->fstat.st_ino, buffer, new_size);
         UpdateInlineData(handle->value_, buffer, 0, new_size);
         free(buffer);                                 // tan::See for "for loop" me,mory deallocation
@@ -839,16 +839,16 @@ int TableFS_Truncate(TableFS *tablefs,const char *path, off_t new_size) {
     ret = -ENOENT;
   }
 
-  InodeMutex_Unlock(tablefs->fstree_lock,&key);
+  InodeMutex_Unlock(tablefs->fstree_lock,key);
   return ret;
 }
 
 int TableFS_Readlink(TableFS *tablefs,const char *path, char *buf, size_t size) {
   tfs_meta_key_t key;
-  if (!TableFS_PathLookup(tablefs,path, &key)) {
+  if (!TableFS_PathLookup(tablefs,path, key)) {
     return TableFS_FSError(tablefs,"Open: No such file or directory\n");
   }
-  InodeMutex_ReadLock(tablefs->fstree_lock,&key);
+  InodeMutex_ReadLock(tablefs->fstree_lock,key);
   char* result;
   int ret = 0;
   /*if (LevelDBAdaptor_Get(table->metadb,key.ToSlice(), result) > 0) {
@@ -858,7 +858,7 @@ int TableFS_Readlink(TableFS *tablefs,const char *path, char *buf, size_t size) 
     errno = ENOENT;
     ret = -1;
   }*/
-  InodeMutex_Unlock(tablefs->fstree_lock,&key);
+  InodeMutex_Unlock(tablefs->fstree_lock,key);
   if (ret < 0) {
     return TableFS_FSError(tablefs,"Open: No such file or directory\n");
   } else {
@@ -868,7 +868,7 @@ int TableFS_Readlink(TableFS *tablefs,const char *path, char *buf, size_t size) 
 
 int TableFS_Symlink(TableFS *tablefs,const char *target, const char *path) {
   tfs_meta_key_t key;
-  //leveldb::Slice filename;
+  Slice filename;
   /*if (!PathLookup(path, key, filename)) {
 #ifdef  TABLEFS_DEBUG
     state_->GetLog()->LogMsg("Symlink: %s %s\n", path, target);
@@ -889,9 +889,9 @@ int TableFS_Symlink(TableFS *tablefs,const char *target, const char *path) {
   name_buffer[header->namelen] = '\0';
   //strncpy(name_buffer+filename.size()+1, target, strlen(target));
 
-  InodeMutex_WriteLock(tablefs->fstree_lock,&key);
+  InodeMutex_WriteLock(tablefs->fstree_lock,key);
   //metadb->Put(key.ToSlice(), std::string(value, val_size));
-  InodeMutex_Unlock(tablefs->fstree_lock,&key);
+  InodeMutex_Unlock(tablefs->fstree_lock,key);
   free(value);
   //delete [] value;                                       // tan::See for "for loop" me,mory
   return 0;}
@@ -901,12 +901,12 @@ int TableFS_Unlink(TableFS *tablefs,const char *path) {
   state_->GetLog()->LogMsg("Unlink: %s\n", path);
 #endif
   tfs_meta_key_t key;
-  if (!TableFS_PathLookup(tablefs,path, &key)) {
+  if (!TableFS_PathLookup(tablefs,path, key)) {
     return TableFS_FSError(tablefs,"Unlink: No such file or directory\n");
   }
 
   int ret = 0;
-  InodeMutex_WriteLock(tablefs->fstree_lock,&key);
+  InodeMutex_WriteLock(tablefs->fstree_lock,key);
   InodeCacheHandle* handle = InodeCache_Get(tablefs->inode_cache,key, INODE_DELETE);
   if (handle != NULL) {
     const tfs_inode_header *value = GetInodeHeader(handle->value_);
@@ -915,13 +915,13 @@ int TableFS_Unlink(TableFS *tablefs,const char *path) {
      TableFS_GetDiskFilePath(tablefs,fpath, value->fstat.st_ino);
       unlink(fpath);
     }
-    tfs_DentryCache_Evict(tablefs->dentry_cache,&key);
+    tfs_DentryCache_Evict(tablefs->dentry_cache,key);
     InodeCache_Release(tablefs->inode_cache,handle);
     InodeCache_Evict(tablefs->inode_cache,key);
   } else {
     ret = -ENOENT;
   }
-  InodeMutex_Unlock(tablefs->fstree_lock,&key);
+  InodeMutex_Unlock(tablefs->fstree_lock,key);
 
   return ret;
 }
@@ -942,9 +942,9 @@ int TableFS_MakeNode(TableFS *tablefs,const char *path, mode_t mode, dev_t dev) 
 */
   int ret = 0;
   {
-    InodeMutex_WriteLock(tablefs->fstree_lock,&key);
+    InodeMutex_WriteLock(tablefs->fstree_lock,key);
     //ret=metadb->Put(key.ToSlice(), value.ToSlice());
-    InodeMutex_Unlock(tablefs->fstree_lock,&key);
+    InodeMutex_Unlock(tablefs->fstree_lock,key);
 
   }
 
@@ -973,9 +973,9 @@ int TableFS_MakeDir(TableFS *tablefs,const char *path, mode_t mode) {
 */
   int ret = 0;
   {
-    InodeMutex_WriteLock(tablefs->fstree_lock,&key);
+    InodeMutex_WriteLock(tablefs->fstree_lock,key);
 //    ret=metadb->Put(key.ToSlice(), value.ToSlice());
-    InodeMutex_Unlock(tablefs->fstree_lock,&key);
+    InodeMutex_Unlock(tablefs->fstree_lock,key);
   }
 
 //  FreeInodeValue(value);
@@ -994,19 +994,19 @@ int TableFS_OpenDir(TableFS *tablefs,const char *path, struct fuse_file_info *fi
 #endif
   tfs_meta_key_t key;
   char *inode;
-  if (!TableFS_PathLookup(tablefs,path, &key)) {
+  if (!TableFS_PathLookup(tablefs,path, key)) {
     return TableFS_FSError(tablefs,"OpenDir: No such file or directory\n");
   }
-  InodeMutex_ReadLock(tablefs->fstree_lock,&key);
+  InodeMutex_ReadLock(tablefs->fstree_lock,key);
   InodeCacheHandle* handle =
     InodeCache_Get(tablefs->inode_cache,key, INODE_READ);
   if (handle != NULL) {
     //fi->fh = (uint64_t) handle;
     fi->fh = (int) handle;				// tan::Var Bagha
-  InodeMutex_Unlock(tablefs->fstree_lock,&key);
+  InodeMutex_Unlock(tablefs->fstree_lock,key);
     return 0;
   } else {
-  InodeMutex_Unlock(tablefs->fstree_lock,&key);
+  InodeMutex_Unlock(tablefs->fstree_lock,key);
     return TableFS_FSError(tablefs,"OpenDir: No such file or directory\n");
   }
 }
@@ -1063,20 +1063,20 @@ int TableFS_RemoveDir(TableFS *tablefs,const char *path) {
   //TODO: Do we need to scan the whole table and delete the item?
   tfs_meta_key_t key;
   char *inode;
-  if (!TableFS_PathLookup(tablefs,path, &key)) {
+  if (!TableFS_PathLookup(tablefs,path, key)) {
     return TableFS_FSError(tablefs,"RemoveDir: No such file or directory\n");
   }
   int ret = 0;
-  InodeMutex_WriteLock(tablefs->fstree_lock,&key);
+  InodeMutex_WriteLock(tablefs->fstree_lock,key);
   InodeCacheHandle* handle = InodeCache_Get(tablefs->inode_cache,key, INODE_DELETE);
   if (handle != NULL) {
-    tfs_DentryCache_Evict(tablefs->dentry_cache,&key);
+    tfs_DentryCache_Evict(tablefs->dentry_cache,key);
     InodeCache_Release(tablefs->inode_cache,handle);
     InodeCache_Evict(tablefs->inode_cache,key);
   } else {
     ret = -ENOENT;
   }
-  InodeMutex_Unlock(tablefs->fstree_lock,&key);
+  InodeMutex_Unlock(tablefs->fstree_lock,key);
   return ret;
 }
 
@@ -1085,15 +1085,15 @@ int TableFS_Rename(TableFS *tablefs,const char *old_path, const char *new_path) 
   state_->GetLog()->LogMsg("Rename: %s %s\n", old_path, new_path);
 #endif
   tfs_meta_key_t old_key;
-  if (!TableFS_PathLookup(tablefs,old_path, &old_key)) {
+  if (!TableFS_PathLookup(tablefs,old_path, old_key)) {
     return TableFS_FSError(tablefs,"No such file or directory\n");
   }
-  tfs_meta_key_t new_key;
-  /*leveldb::Slice filename;
-  if (!PathLookup(new_path, new_key, filename)) {
+  tfs_meta_key_t new_key;               
+  Slice *filename;
+  if (!TableFS_PathLookup_Slice(tablefs,new_path, new_key, filename)) {
     return TableFS_FSError(tablefs,"No such file or directory\n");
   }
-*/
+
 #ifdef  TABLEFS_DEBUG
   state_->GetLog()->LogMsg("Rename old_key: [%08x, %08x]\n", old_key.inode_id, old_key.hash_id);
   state_->GetLog()->LogMsg("Rename new_key: [%08x, %08x]\n", new_key.inode_id, new_key.hash_id);
@@ -1110,8 +1110,8 @@ int TableFS_Rename(TableFS *tablefs,const char *old_path, const char *new_path) 
     large_key = new_key;
     small_key = old_key;
   }
-  InodeMutex_WriteLock(tablefs->fstree_lock,&large_key);
-  InodeMutex_WriteLock(tablefs->fstree_lock,&small_key);
+  InodeMutex_WriteLock(tablefs->fstree_lock,large_key);
+  InodeMutex_WriteLock(tablefs->fstree_lock,small_key);
 
   int ret = 0;
   InodeCacheHandle* old_handle = InodeCache_Get(tablefs->inode_cache,old_key, INODE_DELETE);
@@ -1127,13 +1127,13 @@ int TableFS_Rename(TableFS *tablefs,const char *old_path, const char *new_path) 
     InodeCache_Release(tablefs->inode_cache,new_handle);
     InodeCache_Release(tablefs->inode_cache,old_handle);
     InodeCache_Evict(tablefs->inode_cache,old_key);
-    tfs_DentryCache_Evict(tablefs->dentry_cache,&old_key);
-    tfs_DentryCache_Evict(tablefs->dentry_cache,&new_key);
+    tfs_DentryCache_Evict(tablefs->dentry_cache,old_key);
+    tfs_DentryCache_Evict(tablefs->dentry_cache,new_key);
   } else {
     ret = -ENOENT;
   }
-  InodeMutex_Unlock(tablefs->fstree_lock,&small_key);
-  InodeMutex_Unlock(tablefs->fstree_lock,&large_key);
+  InodeMutex_Unlock(tablefs->fstree_lock,small_key);
+  InodeMutex_Unlock(tablefs->fstree_lock,large_key);
   return ret;
 }
 
@@ -1150,11 +1150,11 @@ int TableFS_UpdateTimens(TableFS *tablefs,const char *path, const struct timespe
   state_->GetLog()->LogMsg("UpdateTimens: %s\n", path);
 #endif
   tfs_meta_key_t key;
-  if (!TableFS_PathLookup(tablefs,path, &key)) {
+  if (!TableFS_PathLookup(tablefs,path, key)) {
     return TableFS_FSError(tablefs,"No such file or directory\n");
   }
   int ret = 0;
-  InodeMutex_WriteLock(tablefs->fstree_lock,&key);
+  InodeMutex_WriteLock(tablefs->fstree_lock,key);
   InodeCacheHandle* handle = InodeCache_Get(tablefs->inode_cache,key, INODE_WRITE);
   if (handle != NULL) {
     {
@@ -1170,17 +1170,17 @@ int TableFS_UpdateTimens(TableFS *tablefs,const char *path, const struct timespe
   } else {
     ret = -ENOENT;
   }
-  InodeMutex_Unlock(tablefs->fstree_lock,&key);
+  InodeMutex_Unlock(tablefs->fstree_lock,key);
   return ret;
 }
 
 int TableFS_Chmod(TableFS *tablefs,const char *path, mode_t mode) {
   tfs_meta_key_t key;
-  if (!TableFS_PathLookup(tablefs,path, &key)) {
+  if (!TableFS_PathLookup(tablefs,path, key)) {
     return TableFS_FSError(tablefs,"No such file or directory\n");
   }
   int ret = 0;
-  InodeMutex_WriteLock(tablefs->fstree_lock,&key);
+  InodeMutex_WriteLock(tablefs->fstree_lock,key);
   InodeCacheHandle* handle = InodeCache_Get(tablefs->inode_cache,key, INODE_WRITE);
   if (handle != NULL) {
     //const tfs_stat_t *value = GetAttribute(handle->value_);    //levedb
@@ -1193,17 +1193,17 @@ int TableFS_Chmod(TableFS *tablefs,const char *path, mode_t mode) {
   } else {
     ret = -ENOENT;
   }
-  InodeMutex_Unlock(tablefs->fstree_lock,&key);
+  InodeMutex_Unlock(tablefs->fstree_lock,key);
   return ret;
 }
 
 int TableFS_Chown(TableFS *tablefs,const char *path, uid_t uid, gid_t gid) {
   tfs_meta_key_t key;
-  if (!TableFS_PathLookup(tablefs,path, &key))
+  if (!TableFS_PathLookup(tablefs,path, key))
     return TableFS_FSError(tablefs,"No such file or directory\n");
   
   int ret = 0;
-  InodeMutex_WriteLock(tablefs->fstree_lock,&key);
+  InodeMutex_WriteLock(tablefs->fstree_lock,key);
   InodeCacheHandle* handle = InodeCache_Get(tablefs->inode_cache,key, INODE_WRITE);
   if (handle != NULL) {
     //const tfs_stat_t *value = GetAttribute(handle->value_);    //leveldb
@@ -1212,14 +1212,14 @@ int TableFS_Chown(TableFS *tablefs,const char *path, uid_t uid, gid_t gid) {
     new_value.st_uid = uid;
     new_value.st_gid = gid;
     UpdateAttribute(handle->value_, &new_value);	//&takla
- InodeCache_WriteBack(tablefs->inode_cache,handle);
+    InodeCache_WriteBack(tablefs->inode_cache,handle);
     InodeCache_Release(tablefs->inode_cache,handle);
     return 0;
   } 
   else {
     ret = -ENOENT;
   }
-  InodeMutex_Unlock(tablefs->fstree_lock,&key);
+  InodeMutex_Unlock(tablefs->fstree_lock,key);
   return ret;
 }
 

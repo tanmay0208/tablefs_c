@@ -14,7 +14,7 @@ struct TableFS {
   FileSystemState *state_;
   LevelDBAdaptor* metadb;
   struct InodeCache *inode_cache;
-  struct DentryCache *dentry_cache;
+  DentryCache *dentry_cache;             
   struct InodeMutex *fstree_lock;
   bool flag_fuse_enabled;
   struct TableFSTestWrapper *tablefstestwrapper;
@@ -115,16 +115,16 @@ typedef struct TableFS TableFS;
  void TableFS_FreeInodeValue(tfs_inode_val_t ival);    //no need tablfs to pass , pointer kadhla ahe ival cha
 
  bool TableFS_ParentPathLookup(TableFS *,const char* path,
-                        tfs_meta_key_t *key,
+                        tfs_meta_key_t key,
                         tfs_inode_t inode_in_search,
                         const char* lastdelimiter);
 
   inline bool TableFS_PathLookup_Slice(TableFS *,const char *path,
-                         tfs_meta_key_t *key,
+                         tfs_meta_key_t key,
                          Slice *filename);
 
   inline bool TableFS_PathLookup(TableFS *,const char *path,
-                         tfs_meta_key_t *key);
+                         tfs_meta_key_t key);
 
 //  friend class TableFSTestWrapper;             added in struct
 
