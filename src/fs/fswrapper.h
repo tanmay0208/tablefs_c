@@ -202,7 +202,7 @@ typedef struct TableFSWrapper TableFSWrapper;
 
   int TableFSWrapper_Close(TableFSWrapper *tablefswrapper,int fd);
 
-  bool GetStat(char *stat, char **value);
+  bool TableFSWrapper_GetStat(TableFSWrapper *tablefswrapper,char *stat, char **value);
 
   void TableFSWrapper_Compact(TableFSWrapper *tablefswrapper) {
     //fs->Compact();
@@ -221,14 +221,17 @@ typedef struct TableFSWrapper TableFSWrapper;
     //void TableFSWrapperStat_constructor(TableFSWrapper* fsw): fsw_(fsw) {
     //}
 
-    /*virtual void TableFSWrapperStat_GetMetric(TMetList &metlist, time_t now) {
-      std::string value;
-      if (fsw_->GetStat("leveldb.stats", &value)) {
+    /*virtual*/ /*void TableFSWrapperStat_GetMetric(TableFSWrapperStat *tablefswrapperstat,hash_map *TMetList, time_t now) {
+      char *value;
+      int i,ri;
+      bool k;
+      k=TableFSWrapper_GetStat(tablefswrapperstat->fsw_,"leveldb.stats", &value);
+      if(k) {
         const int metric_cnt = 13;
         int r[metric_cnt];
-        std::stringstream ssmetric(value);
-        for (int i = 0; i < metric_cnt; ++i)
-          ssmetric >> r[i];
+        //std::stringstream ssmetric(value);
+        for (i = 0; i < metric_cnt; ++i)
+          //ssmetric >> r[i];
         int now = (int) time(NULL);
         const char* metname[metric_cnt] = {
           "leveldb.num_files", "leveldb.num_size", "leveldb.num_compact",
@@ -239,12 +242,12 @@ typedef struct TableFSWrapper TableFSWrapper;
           "leveldb.log_syncs", "leveldb.desc_syncs"
         };
 
-        for (int ri = 0; ri < metric_cnt; ++ri) {
-          AddMetric(metlist, metname[ri], now, r[ri]);
+        for (ri = 0; ri < metric_cnt; ++ri) {
+          //AddMetric(metlist, metname[ri], now, r[ri]);
         }
       }
-    }*/
-  //};
+    }
+  //};*/
 
   MetricStat* TableFSWrapperStat_GetMetricStat() {
     //return new TableFSWrapperStat(this);
