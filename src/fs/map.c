@@ -1,316 +1,192 @@
-#include < stdlib.h >
-#include < stdio.h >
-#include < minithreads/hashmap.h >
-#include < minithreads/synch.h >
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdbool.h>
 
-#define INITIAL_SIZE 1024
+#include "memory.h"
+#include "linked_list.h"
 
-// We need to keep keys and values
+#include "hash_map.h"
 
-/*
- * Return an empty hashmap, or NULL on failure.
- */
-map_t hashmap_new() {
-	hashmap_map* m = (hashmap_map*) malloc(sizeof(hashmap_map));
-	if(!m) goto err;
-
-	m->data = (hashmap_element*) calloc(INITIAL_SIZE, sizeof(hashmap_element));
-	if(!m->data) goto err;
-
-	m->lock = (semaphore_t) semaphore_create();
-	if(!m->lock) goto err;
-	semaphore_initialize(m->lock, 1);
-
-	m->table_size = INITIAL_SIZE;
-	m->size = 0;
-
-	return m;
-	err:
-		if (m)
-			hashmap_free(m);
-		return NULL;
+static inline int hash_map_default_comparator(const void *l, const void *r) {
+        return *((unsigned long *) l) - *((unsigned long *) r);
 }
 
-/*
- * Hashing function for an integer
- */
-unsigned int hashmap_hash_int(hashmap_map * m, unsigned int key){
-	/* Robert Jenkins' 32 bit Mix Function */
-	key += (key << 12);
-	key ^= (key >> 22);
-	key += (key << 4);
-	key ^= (key >> 9);
-	key += (key << 10);
-	key ^= (key >> 2);
-	key += (key << 7);
-	key ^= (key >> 12);
-
-	/* Knuth's Multiplicative Method */
-	key = (key >> 3) * 2654435761;
-
-	return key % m->table_size;
+static inline size_t hash_map_default_hash_func(const void *key, size_t capacity) {
+        return *((size_t *) key) % capacity;
 }
 
-/*
- * Return the integer of the location in data
- * to store the point to the item, or MAP_FULL.
- */
-int hashmap_hash(map_t in, int key){
-	int curr;
-	int i;
+void hash_map_init(hash_map *map, size_t capacity, hash_map_comparator comparator, hash_map_hash_func hash_func) {
+        map->capacity = capacity;
+        map->size = 0;
 
-	/* Cast the hashmap */
-	hashmap_map* m = (hashmap_map *) in;
+        map->table = (linked_list **) safe_malloc(sizeof(linked_list *) * map->capacity);
+        memset(map->table, 0, sizeof(linked_list *) * map->capacity);
 
-	/* If full, return immediately */
-	if(m->size == m->table_size) return MAP_FULL;
+        if (comparator) {
+                map->comparator = comparator;
+        } else {
+                map->comparator = hash_map_default_comparator;
+        }
 
-	/* Find the best index */
-	curr = hashmap_hash_int(m, key);
+        if (hash_func) {
+                map->hash_func = hash_func;
+        } else {
+                map->hash_func = hash_map_default_hash_func;
+        }
 
-	/* Linear probling */
-	for(i = 0; i< m->table_size; i++){
-		if(m->data[curr].in_use == 0)
-			return curr;
-
-		if(m->data[curr].key == key && m->data[curr].in_use == 1)
-			return curr;
-
-		curr = (curr + 1) % m->table_size;
-	}
-
-	return MAP_FULL;
+        map->keys = (linked_list *) safe_malloc(sizeof(linked_list));
+        // No free_data func here because keys will be free'd by linked_list_free for **table
+        linked_list_init(map->keys, NULL);
 }
 
-/*
- * Doubles the size of the hashmap, and rehashes all the elements
- */
-int hashmap_rehash(map_t in){
-	int i;
-	int old_size;
-	hashmap_element* curr;
+void hash_map_free(hash_map *map) {
+        for (size_t i = 0; i < map->capacity; i++) {
+                if (map->table[i]) {
+                        linked_list_free(map->table[i]);
+                }
+        }
 
-	/* Setup the new elements */
-	hashmap_map *m = (hashmap_map *) in;
-	hashmap_element* temp = (hashmap_element *)
-		calloc(2 * m->table_size, sizeof(hashmap_element));
-	if(!temp) return MAP_OMEM;
+        linked_list_free(map->keys);
 
-	/* Update the array */
-	curr = m->data;
-	m->data = temp;
+        safe_free(map->table);
 
-	/* Update the size */
-	old_size = m->table_size;
-	m->table_size = 2 * m->table_size;
-	m->size = 0;
-
-	/* Rehash the elements */
-	for(i = 0; i < old_size; i++){
-		int status = hashmap_put(m, curr[i].key, curr[i].data);
-		if (status != MAP_OK)
-			return status;
-	}
-
-	free(curr);
-
-	return MAP_OK;
+        safe_free(map);
 }
 
-/*
- * Add a pointer to the hashmap with some key
- */
-int hashmap_put(map_t in, int key, any_t value){
-	int index;
-	hashmap_map* m;
+void *hash_map_get(hash_map *map, void *key) {
+        linked_list *list = map->table[map->hash_func(key, map->capacity)];
 
-	/* Cast the hashmap */
-	m = (hashmap_map *) in;
+        if (!list) {
+                return NULL;
+        }
 
-	/* Lock for concurrency */
-	semaphore_P(m->lock);
+        linked_list_node *head = linked_list_head(list);
 
-	/* Find a place to put our value */
-	index = hashmap_hash(in, key);
-	while(index == MAP_FULL){
-		if (hashmap_rehash(in) == MAP_OMEM) {
-			semaphore_V(m->lock);
-			return MAP_OMEM;
-		}
-		index = hashmap_hash(in, key);
-	}
+        while (head) {
+                hash_map_pair *pair = (hash_map_pair *) head->data;
 
-	/* Set the data */
-	m->data[index].data = value;
-	m->data[index].key = key;
-	m->data[index].in_use = 1;
-	m->size++; 
+                if (map->comparator(pair->key, key) == 0) {
+                        return pair->value;
+                }
 
-	/* Unlock */
-	semaphore_V(m->lock);
+                head = head->next;
+        }
 
-	return MAP_OK;
+        return NULL;
 }
 
-/*
- * Get your pointer out of the hashmap with a key
- */
-int hashmap_get(map_t in, int key, any_t *arg){
-	int curr;
-	int i;
-	hashmap_map* m;
+void hash_map_put(hash_map *map, void *key, void *value) {
+        linked_list *list = map->table[map->hash_func(key, map->capacity)];
 
-	/* Cast the hashmap */
-	m = (hashmap_map *) in;
+        if (!list) {
+                list = (linked_list *) safe_malloc(sizeof(linked_list));
+                linked_list_init(list, (linked_list_destructor) safe_free);
+                map->table[map->hash_func(key, map->capacity)] = list;
+        }
 
-	/* Lock for concurrency */
-	semaphore_P(m->lock);		
+        linked_list_node *head = linked_list_head(list);
 
-	/* Find data location */
-	curr = hashmap_hash_int(m, key);
+        while (head) {
+                hash_map_pair *pair = (hash_map_pair *) head->data;
 
-	/* Linear probing, if necessary */
-	for(i = 0; i< m->table_size; i++){
+                // if key already exists, update the value
+                if (map->comparator(pair->key, key) == 0) {
+                        pair->value = value;
+                        return;
+                }
 
-		if(m->data[curr].key == key && m->data[curr].in_use == 1){
-			*arg = (int *) (m->data[curr].data);
-			semaphore_V(m->lock);
-			return MAP_OK;
-		}
+                head = head->next;
+        }
 
-		curr = (curr + 1) % m->table_size;
-	}
+        // or else insert new one
 
-	*arg = NULL;
+        hash_map_pair *pair = (hash_map_pair *) safe_malloc(sizeof(hash_map_pair));
+        pair->key = key;
+        pair->value = value;
 
-	/* Unlock */
-	semaphore_V(m->lock);
+        linked_list_prepend(list, pair);
 
-	/* Not found */
-	return MAP_MISSING;
+        linked_list_append(map->keys, key);
+
+        map->size++;
 }
 
-/*
- * Get a random element from the hashmap
- */
-int hashmap_get_one(map_t in, any_t *arg, int remove){
-	int i;
-	hashmap_map* m;
+void hash_map_remove(hash_map *map, void *key) {
+        size_t offset = map->hash_func(key, map->capacity);
+        linked_list *list = map->table[offset];
 
-	/* Cast the hashmap */
-	m = (hashmap_map *) in;
+        if (!list) {
+                return;
+        }
 
-	/* On empty hashmap return immediately */
-	if (hashmap_length(m) <= 0)
-		return MAP_MISSING;
-
-	/* Lock for concurrency */
-	semaphore_P(m->lock);
-
-	/* Linear probing */
-	for(i = 0; i< m->table_size; i++)
-		if(m->data[i].in_use != 0){
-			*arg = (any_t) (m->data[i].data);
-			if (remove) {
-				m->data[i].in_use = 0;
-				m->size--;
-			}
-			semaphore_V(m->lock);
-			return MAP_OK;
-		}
-
-	/* Unlock */
-	semaphore_V(m->lock);
-
-	return MAP_OK;
+        // The variable previous_node is set to the sentinel node, NOT the
+        // head item of the list.
+        linked_list_node *previous_node = list->head;
+        linked_list_node *current_node = previous_node->next;
+        while (true) {
+                // Is the first node a match?
+                if (map->comparator(((hash_map_pair *)current_node->data)->key, key) == 0) {
+                        // Delete the node and relink.
+                        previous_node->next = current_node->next;
+                        if (list->free_data) {
+                                list->free_data(current_node->data);
+                        }
+                        safe_free(current_node);
+                        // Decrement structure sizes
+                        list->size--;
+                        map->size--;
+                        return;
+                }
+                // Exit when we are at the end.
+                if (current_node->next == NULL) {
+                        break;
+                }
+                // Increment
+                previous_node = current_node;
+                current_node = current_node->next;
+        }
 }
 
-/*
- * Iterate the function parameter over each element in the hashmap.  The
- * additional any_t argument is passed to the function as its first
- * argument and the hashmap element is the second.
- */
-int hashmap_iterate(map_t in, PFany f, any_t item) {
-	int i;
-
-	/* Cast the hashmap */
-	hashmap_map* m = (hashmap_map*) in;
-
-	/* On empty hashmap, return immediately */
-	if (hashmap_length(m) <= 0)
-		return MAP_MISSING;	
-
-	/* Lock for concurrency */
-	semaphore_P(m->lock);
-
-	/* Linear probing */
-	for(i = 0; i< m->table_size; i++)
-		if(m->data[i].in_use != 0) {
-			any_t data = (any_t) (m->data[i].data);
-			int status = f(item, data);
-			if (status != MAP_OK) {
-				semaphore_V(m->lock);
-				return status;
-			}
-		}
-
-	/* Unlock */
-	semaphore_V(m->lock);
-
-        return MAP_OK;
+size_t hash_map_size(hash_map *map) {
+        return map->size;
 }
 
-/*
- * Remove an element with that key from the map
- */
-int hashmap_remove(map_t in, int key){
-	int i;
-	int curr;
-	hashmap_map* m;
-
-	/* Cast the hashmap */
-	m = (hashmap_map *) in;
-
-	/* Lock for concurrency */
-	semaphore_P(m->lock);
-
-	/* Find key */
-	curr = hashmap_hash_int(m, key);
-
-	/* Linear probing, if necessary */
-	for(i = 0; i< m->table_size; i++){
-		if(m->data[curr].key == key && m->data[curr].in_use == 1){
-			/* Blank out the fields */
-			m->data[curr].in_use = 0;
-			m->data[curr].data = NULL;
-			m->data[curr].key = 0;
-
-			/* Reduce the size */
-			m->size--;
-			semaphore_V(m->lock);
-			return MAP_OK;
-		}
-		curr = (curr + 1) % m->table_size;
-	}
-
-	/* Unlock */
-	semaphore_V(m->lock);
-
-	/* Data not found */
-	return MAP_MISSING;
+linked_list *hash_map_keys(hash_map *map) {
+        return map->keys;
 }
 
-/* Deallocate the hashmap */
-void hashmap_free(map_t in){
-	hashmap_map* m = (hashmap_map*) in;
-	free(m->data);
-	semaphore_destroy(m->lock);
-	free(m);
+void hash_map_clear(hash_map *map) {
+        for (size_t i = 0; i < map->capacity; i++) {
+                linked_list *list = map->table[i];
+
+                if (list) {
+                        linked_list_free(list);
+                        map->table[i] = NULL;
+                }
+        }
+
+        map->size = 0;
 }
 
-/* Return the length of the hashmap */
-int hashmap_length(map_t in){
-	hashmap_map* m = (hashmap_map *) in;
-	if(m != NULL) return m->size;
-	else return 0;
+bool hash_map_contains_key(hash_map *map, void *key) {
+        linked_list *list = map->table[map->hash_func(key, map->capacity)];
+
+        if (!list) {
+                return false;
+        }
+
+        linked_list_node *head = linked_list_head(list);
+
+        while (head) {
+                hash_map_pair *pair = (hash_map_pair *) head->data;
+
+                if (map->comparator(pair->key, key) == 0) {
+                        return true;
+                }
+
+                head = head->next;
+        }
+
+        return false;
 }

@@ -2,8 +2,8 @@
 #ifndef MONITOR_H_
 #define MONITOR_H_
 #include <string.h>
-//#include <map>
-//#include <vector>
+#include "fs/hash_map.h"
+#include "fs/vector.h"
 #include <time.h>
 #include <stdio.h>
 
@@ -13,20 +13,32 @@ typedef time_t TTSTime;
 typedef long long TTSValue;
 //typedef std::pair<TTSTime, TTSValue> TSEntry;
 //typedef std::vector<TSEntry> TSeries;
+vector *TSeries;
+
 //typedef std::map<std::string, TSeries> TMetList;
+//hash_map *TMetList;
+hash_map *TMetList;
+
 
 //class MetricStat {
 //public:
  struct MetricStat
  {
-   /* data */
+    /* data */
  }; 
  typedef struct MetricStat MetricStat;
- 
+
+ struct IOStat{
+    MetricStat *metricstat; 
+    char *devname;
+ }; 
+ typedef struct IOStat IOStat;
   //virtual ~MetricStat() {
   //}
-
+ 
   /*void AddMetric(TMetList &metlist, std::string name,
+                 TTSValue ts, TTSValue val)
+ void AddMetric(hash_map *TMetList, char *name,
                  TTSValue ts, TTSValue val) {
     TMetList::iterator it = metlist.find(name);
     if (it == metlist.end()) {
@@ -36,13 +48,23 @@ typedef long long TTSValue;
     it->second.push_back(TSEntry(ts, val));
   }*/
 
-  //virtual void GetMetric(TMetList &metlist, time_t now) = 0;
+  /*virtual*/ 
+    void MetricStat_GetMetric(IOStat *iostat,hash_map *TMetList, time_t now) ;
+    
 //};
+struct SlabStat{
+  char *fsname;
+  int len_fsname;
+};
+typedef struct SlabStat SlabStat;
 
+void SlabStat_GetMetric(SlabStat *slabstat,hash_map *TMetList, time_t now) ;
 //class Monitor {
 struct Monitor
 {
    FILE *logfile;
+   vector *statlist;
+  
 };
 typedef struct Monitor Monitor;
 //protected:
@@ -70,7 +92,7 @@ typedef struct Monitor Monitor;
 
   void Monitor_Report(Monitor *monitor);
 
-  void Monitor_Report_logf(Monitor *,FILE *logf);
+  void Monitor_Report_logf(Monitor *,FILE *);
 
   void Monitor_ReportToFile(Monitor *monitor);
 //};
